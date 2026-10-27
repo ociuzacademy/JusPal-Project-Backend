@@ -1,0 +1,190 @@
+{% extends 'adminapp/admin_index.html' %}
+
+{% block title %}Departments Directory - JusPal Admin{% endblock %}
+
+{% block content %}
+<main class="flex-1 max-w-7xl w-full mx-auto px-6 py-8 relative z-10 flex flex-col gap-6">
+  
+  <!-- Breadcrumbs & Quick Stats -->
+  <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+    <div class="flex items-center gap-2 text-xs font-mono text-slate-500 dark:text-slate-400">
+      <a href="{% url 'admin_index' %}" class="hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors flex items-center gap-1">
+        <span class="material-symbols-outlined text-[15px]">home</span>
+        <span>Dashboard</span>
+      </a>
+      <span>/</span>
+      <span class="text-slate-800 dark:text-slate-200 font-semibold">Departments Directory</span>
+    </div>
+
+    <div>
+      <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-mono bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 font-medium">
+        <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+        <span id="dept-count-badge">{{ categories|length }} Departments Registered</span>
+      </span>
+    </div>
+  </div>
+
+  <!-- Main Card -->
+  <div class="glass-card rounded-2xl p-6 sm:p-8 shadow-2xl">
+    
+    <!-- Header & Action Toolbar -->
+    <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-5 pb-6 border-b border-slate-200 dark:border-white/10 mb-6">
+      <div>
+        <h1 class="text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-2.5">
+          <span class="material-symbols-outlined text-emerald-600 dark:text-emerald-400 text-[26px]">account_balance</span>
+          Departments Directory
+        </h1>
+        <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">
+          Browse, inspect, and manage all registered judicial aid intake departments and statutory categories.
+        </p>
+      </div>
+
+      <!-- Search & Add Actions -->
+      <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+        <!-- Live Search Input -->
+        <div class="relative">
+          <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[18px]">search</span>
+          <input 
+            type="text" 
+            id="dept-search-input" 
+            onkeyup="filterDepartments()" 
+            placeholder="Search departments..." 
+            class="glass-input pl-9 pr-4 py-2 text-xs rounded-xl w-full sm:w-64"
+          />
+        </div>
+
+        <!-- Add Department CTA -->
+        <a href="{% url 'add_category' %}" class="px-4 py-2.5 glow-button text-white text-xs font-semibold rounded-xl flex items-center justify-center gap-2 shadow-md hover:scale-[1.02] transition-transform">
+          <span class="material-symbols-outlined text-[18px]">add_circle</span>
+          <span>Add New Department</span>
+        </a>
+      </div>
+    </div>
+
+    <!-- Table or Empty State -->
+    {% if categories %}
+      <div class="overflow-x-auto rounded-xl border border-slate-200 dark:border-white/10">
+        <table class="w-full text-left border-collapse" id="departments-table">
+          <thead>
+            <tr class="bg-slate-100/80 dark:bg-white/5 border-b border-slate-200 dark:border-white/10 text-xs font-mono uppercase tracking-wider text-slate-600 dark:text-slate-300">
+              <th class="py-3.5 px-4 w-20"># ID</th>
+              <th class="py-3.5 px-4">Department Name</th>
+              <th class="py-3.5 px-4">Description</th>
+              <th class="py-3.5 px-4 text-center w-36">Officers</th>
+              <th class="py-3.5 px-4 text-right w-44">Actions</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-200 dark:divide-white/5 text-sm" id="departments-tbody">
+            {% for category in categories %}
+              <tr class="dept-row hover:bg-emerald-500/5 dark:hover:bg-emerald-500/10 transition-colors">
+                <!-- ID -->
+                <td class="py-4 px-4 font-mono text-xs text-slate-500 dark:text-slate-400">
+                  <span class="px-2 py-0.5 rounded-md bg-slate-200/60 dark:bg-white/5 border border-slate-300/60 dark:border-white/10">
+                    #{{ category.id }}
+                  </span>
+                </td>
+
+                <!-- Name & Icon -->
+                <td class="py-4 px-4">
+                  <div class="flex items-center gap-3">
+                    <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-emerald-600/20 to-teal-600/20 border border-emerald-500/30 flex items-center justify-center flex-shrink-0 text-emerald-600 dark:text-emerald-400">
+                      <span class="material-symbols-outlined text-[19px]">domain</span>
+                    </div>
+                    <div>
+                      <div class="font-semibold text-slate-900 dark:text-white dept-name">{{ category.name }}</div>
+                      <div class="text-[11px] font-mono text-slate-400 dark:text-slate-500">Statutory Branch</div>
+                    </div>
+                  </div>
+                </td>
+
+                <!-- Description -->
+                <td class="py-4 px-4 text-slate-600 dark:text-slate-300 text-xs max-w-md dept-desc leading-relaxed">
+                  {{ category.description|default:"—" }}
+                </td>
+
+                <!-- Officers Count -->
+                <td class="py-4 px-4 text-center">
+                  <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-mono font-medium bg-teal-500/10 text-teal-700 dark:text-teal-300 border border-teal-500/20">
+                    <span class="material-symbols-outlined text-[14px]">badge</span>
+                    <span>{{ category.officers.count }} Assigned</span>
+                  </span>
+                </td>
+
+                <!-- Actions -->
+                <td class="py-4 px-4 text-right">
+                  <div class="inline-flex items-center gap-2">
+                    <a href="{% url 'edit_category' category.id %}" class="px-3 py-1.5 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-700 dark:text-emerald-300 text-xs font-semibold hover:bg-emerald-500/25 flex items-center gap-1.5 transition-all hover:scale-105" title="Edit Department Details">
+                      <span class="material-symbols-outlined text-[15px]">edit</span>
+                      <span>Edit</span>
+                    </a>
+                    <a href="{% url 'delete_category' category.id %}" onclick="return confirm('Are you sure you want to permanently delete the {{ category.name|escapejs }} department?')" class="px-3 py-1.5 rounded-xl bg-red-500/15 border border-red-500/30 text-red-600 dark:text-red-300 text-xs font-semibold hover:bg-red-500/25 flex items-center gap-1.5 transition-all hover:scale-105" title="Delete Department">
+                      <span class="material-symbols-outlined text-[15px]">delete</span>
+                      <span>Delete</span>
+                    </a>
+                  </div>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+
+        <!-- No Filter Results Match Banner -->
+        <div id="no-search-results" class="hidden text-center py-12 px-4">
+          <span class="material-symbols-outlined text-slate-400 text-[36px] mb-2">search_off</span>
+          <h4 class="text-sm font-semibold text-slate-800 dark:text-slate-200">No matching departments found</h4>
+          <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Try searching with a different department title or keyword.</p>
+        </div>
+      </div>
+    {% else %}
+      <!-- Empty State -->
+      <div class="text-center py-16 px-6 rounded-2xl border border-dashed border-slate-300 dark:border-white/10 bg-slate-50/50 dark:bg-white/[0.02]">
+        <div class="w-16 h-16 rounded-2xl bg-gradient-to-tr from-emerald-500/20 to-teal-500/20 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 mx-auto flex items-center justify-center mb-4 shadow-inner">
+          <span class="material-symbols-outlined text-[32px]">domain_disabled</span>
+        </div>
+        <h3 class="text-lg font-bold text-slate-900 dark:text-white">No Departments Registered Yet</h3>
+        <p class="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1.5 max-w-md mx-auto leading-relaxed">
+          Start building your judicial ledger by adding statutory branches like Criminal Legal Aid, Civil Rights, Family Law, or Consumer Disputes.
+        </p>
+        <div class="mt-6">
+          <a href="{% url 'add_category' %}" class="inline-flex items-center gap-2 px-5 py-2.5 glow-button text-white text-xs font-semibold rounded-xl shadow-lg">
+            <span class="material-symbols-outlined text-[18px]">add_circle</span>
+            <span>Add First Department</span>
+          </a>
+        </div>
+      </div>
+    {% endif %}
+
+  </div>
+</main>
+
+<!-- Client-side Instant Filter Script -->
+<script>
+  function filterDepartments() {
+    const input = document.getElementById('dept-search-input');
+    if (!input) return;
+    const filter = input.value.toLowerCase().trim();
+    const rows = document.querySelectorAll('.dept-row');
+    const noResults = document.getElementById('no-search-results');
+    let visibleCount = 0;
+
+    rows.forEach(row => {
+      const name = row.querySelector('.dept-name')?.textContent.toLowerCase() || '';
+      const desc = row.querySelector('.dept-desc')?.textContent.toLowerCase() || '';
+      if (name.includes(filter) || desc.includes(filter)) {
+        row.style.display = '';
+        visibleCount++;
+      } else {
+        row.style.display = 'none';
+      }
+    });
+
+    if (noResults) {
+      if (visibleCount === 0 && rows.length > 0) {
+        noResults.classList.remove('hidden');
+      } else {
+        noResults.classList.add('hidden');
+      }
+    }
+  }
+</script>
+{% endblock %}
