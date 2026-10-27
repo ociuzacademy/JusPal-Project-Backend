@@ -9,8 +9,8 @@ urlpatterns = [
     path('category_list/', views.category_list, name='category_list'),
     path('edit_category/<int:category_id>/', views.edit_category, name='edit_category'),
     path('delete_category/<int:category_id>/', views.delete_category, name='delete_category'),
-    # path('add_officer/', views.add_officer, name='add_officer'),
-    # path('list_officers/', views.list_officers, name='list_officers'),
-    # path('edit_officer/<int:officer_id>/', views.edit_officer, name='edit_officer'),
-    # path('delete_officer/<int:officer_id>/', views.delete_officer, name='delete_officer'),
+    path('add_officer/', views.add_officer, name='add_officer'),
+    path('list_officers/', views.list_officers, name='list_officers'),
+    path('edit_officer/<int:officer_id>/', views.edit_officer, name='edit_officer'),
+    path('delete_officer/<int:officer_id>/', views.delete_officer, name='delete_officer'),
 ]

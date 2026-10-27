@@ -97,71 +97,91 @@ def delete_category(request, category_id):
     return redirect("category_list")
 
 
-# # ==============================================================================
-# # Officer Management
-# # ==============================================================================
+# ==============================================================================
+# Officer Management
+# ==============================================================================
 
-# def add_officer(request):
-#     """Add a new officer with profile and ID card."""
-#     if request.method == 'POST':
-#         fullname = request.POST.get('Fullname', '').strip()
-#         email = request.POST.get('Email', '').strip()
-#         password = request.POST.get('Password', '').strip()
-#         phone = request.POST.get('Phone', '').strip()
-#         gender = request.POST.get('Gender', '').strip()
-#         category_id = request.POST.get('category')
-#         officer_id = request.POST.get('officer_id', '').strip()
-#         id_card = request.FILES.get('id_card')
-#         profile = request.FILES.get('profile')
+def add_officer(request):
+    """Add a new officer with profile and ID card."""
+    if request.method == 'POST':
+        fullname = request.POST.get('Fullname', '').strip()
+        email = request.POST.get('Email', '').strip()
+        password = request.POST.get('Password', '').strip()
+        phone = request.POST.get('Phone', '').strip()
+        gender = request.POST.get('Gender', '').strip()
+        category_id = request.POST.get('category')
+        officer_id = request.POST.get('officer_id', '').strip()
+        id_card = request.FILES.get('id_card')
+        profile = request.FILES.get('profile')
 
-#         if not all([fullname, email, password, phone, gender, category_id, officer_id]):
-#             messages.error(request, "All required fields must be filled.")
-#         else:
-#             category = get_object_or_404(Category, id=category_id)
-#             Officer.objects.create(
-#                 Fullname=fullname,
-#                 Email=email,
-#                 Password=password,
-#                 Phone=phone,
-#                 Gender=gender,
-#                 category=category,
-#                 officer_id=officer_id,
-#                 id_card=id_card,
-#                 profile=profile,
-#             )
-#             messages.success(request, "Officer added successfully!")
-#             return redirect('list_officers')
+        if not all([fullname, email, password, phone, gender, category_id, officer_id]):
+            messages.error(request, "All required fields must be filled.")
+        else:
+            category = get_object_or_404(Category, id=category_id)
+            Officer.objects.create(
+                Fullname=fullname,
+                Email=email,
+                Password=password,
+                Phone=phone,
+                Gender=gender,
+                category=category,
+                officer_id=officer_id,
+                id_card=id_card,
+                profile=profile,
+            )
+            messages.success(request, f"Officer '{fullname}' registered successfully!")
+            return redirect('list_officers')
 
-#     categories = Category.objects.all()
-#     return render(request, 'add_officer.html', {'categories': categories})
-
-
-# def list_officers(request):
-#     """List all officers with their category details."""
-#     officers = Officer.objects.select_related('category').all()
-#     return render(request, 'list_officers.html', {'officers': officers})
+    categories = Category.objects.all()
+    return render(request, 'adminapp/add_officer.html', {'categories': categories})
 
 
-# def edit_officer(request, officer_id):
-#     """Edit officer details (e.g. password)."""
-#     officer_instance = get_object_or_404(Officer, id=officer_id)
-
-#     if request.method == 'POST':
-#         new_password = request.POST.get('password', '').strip()
-#         if new_password:
-#             officer_instance.Password = new_password
-#             officer_instance.save()
-#             messages.success(request, 'Password updated successfully!')
-#             return redirect('list_officers')
-#         else:
-#             messages.error(request, 'Password cannot be empty.')
-
-#     return render(request, 'edit_officer.html', {'officer': officer_instance})
+def list_officers(request):
+    """List all officers with their category details."""
+    officers = Officer.objects.select_related('category').all().order_by('-id')
+    categories = Category.objects.all()
+    return render(request, 'adminapp/list_officers.html', {
+        'officers': officers,
+        'categories': categories,
+    })
 
 
-# def delete_officer(request, officer_id):
-#     """Delete an officer record."""
-#     officer_instance = get_object_or_404(Officer, id=officer_id)
-#     officer_instance.delete()
-#     messages.success(request, 'Officer deleted successfully!')
-#     return redirect('list_officers')
+def edit_officer(request, officer_id):
+    """Edit officer status and/or password directly from the list."""
+    officer_instance = get_object_or_404(Officer, id=officer_id)
+
+    if request.method == 'POST':
+        new_password = request.POST.get('password', '').strip()
+        is_active = request.POST.get('is_active', '').strip()
+        changed = False
+
+        # Status: only act on a valid submitted value
+        if is_active in ('True', 'False'):
+            new_status = (is_active == 'True')
+            if new_status != officer_instance.is_active:
+                officer_instance.is_active = new_status
+                state = "activated" if new_status else "deactivated"
+                messages.success(request, f"Officer '{officer_instance.Fullname}' {state} successfully!")
+                changed = True
+
+        # Password: optional
+        if new_password:
+            officer_instance.Password = new_password
+            messages.success(request, f"Password for {officer_instance.Fullname} updated successfully!")
+            changed = True
+
+        if changed:
+            officer_instance.save()
+        else:
+            messages.info(request, "No changes were made.")
+
+    return redirect('list_officers')
+
+def delete_officer(request, officer_id):
+    """Delete an officer record."""
+    officer_instance = get_object_or_404(Officer, id=officer_id)
+    officer_name = officer_instance.Fullname
+    officer_instance.delete()
+    messages.success(request, f"Officer '{officer_name}' deleted successfully!")
+    return redirect('list_officers')
+

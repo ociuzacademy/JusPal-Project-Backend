@@ -229,6 +229,30 @@
     .glow-button:active {
         transform: scale(0.98);
     }
+
+    /* Glass Input Styling */
+    .glass-input {
+      background: rgba(255, 255, 255, 0.85);
+      border: 1px solid rgba(16, 185, 129, 0.25);
+      color: #0f172a;
+      transition: all 0.2s ease;
+      outline: none;
+    }
+    .glass-input:focus {
+      background: #ffffff;
+      border-color: #059669;
+      box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2);
+    }
+    html.dark .glass-input {
+      background: rgba(8, 20, 24, 0.7);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      color: #f1f5f9;
+    }
+    html.dark .glass-input:focus {
+      background: rgba(6, 18, 20, 0.95);
+      border-color: #34d399;
+      box-shadow: 0 0 0 3px rgba(52, 211, 153, 0.25);
+    }
   </style>
 </head>
 
@@ -283,6 +307,27 @@
               <a href="{% url 'category_list' %}" class="dropdown-item {% if request.resolver_match.url_name == 'category_list' %}bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-semibold{% endif %}">
                 <span class="material-symbols-outlined text-[18px] text-teal-600 dark:text-teal-400">format_list_bulleted</span>
                 <span>List Departments</span>
+              </a>
+            </div>
+          </div>
+
+          <!-- Officers Dropdown -->
+          <div class="relative" id="officer-dropdown-wrapper">
+            <button id="officer-menu-btn" onclick="toggleOfficerMenu(event)" class="nav-link {% if request.resolver_match.url_name in 'list_officers add_officer edit_officer' %}active{% endif %}" type="button" aria-haspopup="true" aria-expanded="false">
+              <span class="material-symbols-outlined text-[18px] text-teal-600 dark:text-teal-400">badge</span>
+              <span>Officers</span>
+              <span class="material-symbols-outlined text-[16px] transition-transform duration-200" id="officer-arrow">expand_more</span>
+            </button>
+
+            <!-- Dropdown Menu -->
+            <div id="officer-dropdown" class="hidden absolute top-full left-0 mt-2 w-56 rounded-xl glass-dropdown p-1.5 shadow-2xl z-50">
+              <a href="{% url 'add_officer' %}" class="dropdown-item {% if request.resolver_match.url_name == 'add_officer' %}bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-semibold{% endif %}">
+                <span class="material-symbols-outlined text-[18px] text-emerald-600 dark:text-emerald-400">person_add</span>
+                <span>Add Officer</span>
+              </a>
+              <a href="{% url 'list_officers' %}" class="dropdown-item {% if request.resolver_match.url_name == 'list_officers' %}bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-semibold{% endif %}">
+                <span class="material-symbols-outlined text-[18px] text-teal-600 dark:text-teal-400">format_list_bulleted</span>
+                <span>List Officers</span>
               </a>
             </div>
           </div>
@@ -402,23 +447,29 @@
         <div class="text-xs text-slate-500 dark:text-slate-400 mt-1">Tamper-evident log active</div>
       </div>
 
-      <div class="glass-tile rounded-2xl p-5">
+      <a href="{% url 'list_officers' %}" class="glass-tile rounded-2xl p-5 block group hover:border-emerald-500/40 transition-all">
         <div class="flex items-center justify-between">
           <span class="text-xs font-mono uppercase text-emerald-700 dark:text-emerald-300 tracking-wider">Total Officers</span>
-          <span class="material-symbols-outlined text-emerald-600 dark:text-emerald-400">group</span>
+          <span class="material-symbols-outlined text-emerald-600 dark:text-emerald-400 group-hover:scale-110 transition-transform">badge</span>
         </div>
         <div class="text-2xl font-bold text-slate-900 dark:text-white mt-3">{{ officer_count }}</div>
-        <div class="text-xs text-slate-500 dark:text-slate-400 mt-1">Registered legal officers</div>
-      </div>
+        <div class="text-xs text-slate-500 dark:text-slate-400 mt-1 flex items-center justify-between">
+          <span>Registered legal officers</span>
+          <span class="text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-0.5 group-hover:translate-x-1 transition-transform">Manage &rarr;</span>
+        </div>
+      </a>
 
-      <div class="glass-tile rounded-2xl p-5">
+      <a href="{% url 'category_list' %}" class="glass-tile rounded-2xl p-5 block group hover:border-teal-500/40 transition-all">
         <div class="flex items-center justify-between">
           <span class="text-xs font-mono uppercase text-teal-700 dark:text-teal-300 tracking-wider">Total Categories</span>
-          <span class="material-symbols-outlined text-teal-600 dark:text-teal-400">category</span>
+          <span class="material-symbols-outlined text-teal-600 dark:text-teal-400 group-hover:scale-110 transition-transform">category</span>
         </div>
         <div class="text-2xl font-bold text-slate-900 dark:text-white mt-3">{{ category_count }}</div>
-        <div class="text-xs text-slate-500 dark:text-slate-400 mt-1">Legal aid categories defined</div>
-      </div>
+        <div class="text-xs text-slate-500 dark:text-slate-400 mt-1 flex items-center justify-between">
+          <span>Legal aid categories defined</span>
+          <span class="text-teal-600 dark:text-teal-400 font-semibold flex items-center gap-0.5 group-hover:translate-x-1 transition-transform">Manage &rarr;</span>
+        </div>
+      </a>
     </div>
   </main>
   {% endblock %}
@@ -469,6 +520,9 @@
       const btn = document.getElementById('dept-menu-btn');
       const isOpen = !menu.classList.contains('hidden');
       
+      // Close officer menu if open
+      closeOfficerMenu();
+
       if (isOpen) {
         menu.classList.add('hidden');
         if (arrow) arrow.style.transform = 'rotate(0deg)';
@@ -480,18 +534,59 @@
       }
     }
 
-    // Close dropdown on outside click
-    document.addEventListener('click', function(e) {
+    function closeDeptMenu() {
       const menu = document.getElementById('dept-dropdown');
-      const wrapper = document.getElementById('dept-dropdown-wrapper');
+      const arrow = document.getElementById('dept-arrow');
+      const btn = document.getElementById('dept-menu-btn');
       if (menu && !menu.classList.contains('hidden')) {
-        if (wrapper && !wrapper.contains(e.target)) {
-          menu.classList.add('hidden');
-          const arrow = document.getElementById('dept-arrow');
-          if (arrow) arrow.style.transform = 'rotate(0deg)';
-          const btn = document.getElementById('dept-menu-btn');
-          if (btn) btn.setAttribute('aria-expanded', 'false');
-        }
+        menu.classList.add('hidden');
+        if (arrow) arrow.style.transform = 'rotate(0deg)';
+        if (btn) btn.setAttribute('aria-expanded', 'false');
+      }
+    }
+
+    // Officer Dropdown Handler
+    function toggleOfficerMenu(event) {
+      if (event) event.stopPropagation();
+      const menu = document.getElementById('officer-dropdown');
+      const arrow = document.getElementById('officer-arrow');
+      const btn = document.getElementById('officer-menu-btn');
+      const isOpen = !menu.classList.contains('hidden');
+      
+      // Close dept menu if open
+      closeDeptMenu();
+
+      if (isOpen) {
+        menu.classList.add('hidden');
+        if (arrow) arrow.style.transform = 'rotate(0deg)';
+        if (btn) btn.setAttribute('aria-expanded', 'false');
+      } else {
+        menu.classList.remove('hidden');
+        if (arrow) arrow.style.transform = 'rotate(180deg)';
+        if (btn) btn.setAttribute('aria-expanded', 'true');
+      }
+    }
+
+    function closeOfficerMenu() {
+      const menu = document.getElementById('officer-dropdown');
+      const arrow = document.getElementById('officer-arrow');
+      const btn = document.getElementById('officer-menu-btn');
+      if (menu && !menu.classList.contains('hidden')) {
+        menu.classList.add('hidden');
+        if (arrow) arrow.style.transform = 'rotate(0deg)';
+        if (btn) btn.setAttribute('aria-expanded', 'false');
+      }
+    }
+
+    // Close dropdowns on outside click
+    document.addEventListener('click', function(e) {
+      const deptWrapper = document.getElementById('dept-dropdown-wrapper');
+      if (deptWrapper && !deptWrapper.contains(e.target)) {
+        closeDeptMenu();
+      }
+      const officerWrapper = document.getElementById('officer-dropdown-wrapper');
+      if (officerWrapper && !officerWrapper.contains(e.target)) {
+        closeOfficerMenu();
       }
     });
 
