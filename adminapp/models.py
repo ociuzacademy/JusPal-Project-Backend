@@ -50,7 +50,6 @@ class Officer(models.Model):
     category = models.ForeignKey(Category, on_delete=models.CASCADE, related_name='officers')
     officer_id = models.CharField(max_length=255)
     profile = models.ImageField(null=True, blank=True, upload_to='profiles/')
-    is_active=models.BooleanField(default=True)
     class Meta:
         verbose_name = "Officer"
         verbose_name_plural = "Officers"

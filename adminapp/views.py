@@ -1,6 +1,24 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
+from functools import wraps
 from .models import tbl_admin, Category, Officer
+
+
+# ==============================================================================
+# Decorators / Session Guards
+# ==============================================================================
+
+def admin_required(view_func):
+    """Redirect to login if no active admin session."""
+    @wraps(view_func)
+    def wrapper(request, *args, **kwargs):
+        if not request.session.get('admin_id'):
+            messages.warning(request, "Please log in to access the admin portal.")
+            return redirect('admin_login')
+        return view_func(request, *args, **kwargs)
+    return wrapper
+
+
 
 
 # ==============================================================================
@@ -9,6 +27,11 @@ from .models import tbl_admin, Category, Officer
 
 def admin_login(request):
     """Handles admin login and sets session data."""
+    if request.session.get('admin_id'):
+        return redirect('admin_index')
+    if request.session.get('officer_db_id'):
+        return redirect('officer_index')
+
     if request.method == "POST":
         email = request.POST.get("email", "").strip()
         password = request.POST.get("password", "").strip()
@@ -25,6 +48,7 @@ def admin_login(request):
     return render(request, "adminapp/login.html")
 
 
+@admin_required
 def admin_index(request):
     """Admin dashboard view."""
     officer_count = Officer.objects.count()
@@ -47,6 +71,7 @@ def admin_logout(request):
 # Category Management
 # ==============================================================================
 
+@admin_required
 def add_category(request):
     """Create a new category / department."""
     if request.method == "POST":
@@ -63,12 +88,14 @@ def add_category(request):
     return render(request, "adminapp/add_category.html")
 
 
+@admin_required
 def category_list(request):
     """List all categories / departments."""
     categories = Category.objects.all()
     return render(request, "adminapp/category_list.html", {"categories": categories})
 
 
+@admin_required
 def edit_category(request, category_id):
     """Edit an existing category / department."""
     category = get_object_or_404(Category, id=category_id)
@@ -89,6 +116,7 @@ def edit_category(request, category_id):
     return render(request, "adminapp/edit_category.html", {"category": category})
 
 
+@admin_required
 def delete_category(request, category_id):
     """Delete a category."""
     category = get_object_or_404(Category, id=category_id)
@@ -101,6 +129,7 @@ def delete_category(request, category_id):
 # Officer Management
 # ==============================================================================
 
+@admin_required
 def add_officer(request):
     """Add a new officer with profile and ID card."""
     if request.method == 'POST':
@@ -136,6 +165,7 @@ def add_officer(request):
     return render(request, 'adminapp/add_officer.html', {'categories': categories})
 
 
+@admin_required
 def list_officers(request):
     """List all officers with their category details."""
     officers = Officer.objects.select_related('category').all().order_by('-id')
@@ -146,6 +176,7 @@ def list_officers(request):
     })
 
 
+@admin_required
 def edit_officer(request, officer_id):
     """Edit officer status and/or password directly from the list."""
     officer_instance = get_object_or_404(Officer, id=officer_id)
@@ -177,6 +208,7 @@ def edit_officer(request, officer_id):
 
     return redirect('list_officers')
 
+@admin_required
 def delete_officer(request, officer_id):
     """Delete an officer record."""
     officer_instance = get_object_or_404(Officer, id=officer_id)
