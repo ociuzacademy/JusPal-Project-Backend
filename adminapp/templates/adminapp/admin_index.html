@@ -333,7 +333,7 @@
           </div>
 
           <!-- Users -->
-          <a href="#users" class="nav-link">
+          <a href="{% url 'list_users' %}" class="nav-link {% if request.resolver_match.url_name == 'list_users' %}active{% endif %}">
             <span class="material-symbols-outlined text-[18px]">group</span>
             <span>Users</span>
           </a>
@@ -468,6 +468,18 @@
         <div class="text-xs text-slate-500 dark:text-slate-400 mt-1 flex items-center justify-between">
           <span>Legal aid categories defined</span>
           <span class="text-teal-600 dark:text-teal-400 font-semibold flex items-center gap-0.5 group-hover:translate-x-1 transition-transform">Manage &rarr;</span>
+        </div>
+      </a>
+
+      <a href="{% url 'list_users' %}" class="glass-tile rounded-2xl p-5 block group hover:border-amber-500/40 transition-all">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-mono uppercase text-amber-700 dark:text-amber-300 tracking-wider">Total Users</span>
+          <span class="material-symbols-outlined text-amber-600 dark:text-amber-400 group-hover:scale-110 transition-transform">group</span>
+        </div>
+        <div class="text-2xl font-bold text-slate-900 dark:text-white mt-3">{{ user_count }}</div>
+        <div class="text-xs text-slate-500 dark:text-slate-400 mt-1 flex items-center justify-between">
+          <span>Registered app users</span>
+          <span class="text-amber-600 dark:text-amber-400 font-semibold flex items-center gap-0.5 group-hover:translate-x-1 transition-transform">Manage &rarr;</span>
         </div>
       </a>
     </div>
