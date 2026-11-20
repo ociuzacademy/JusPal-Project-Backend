@@ -1,0 +1,280 @@
+{% extends 'adminapp/admin_index.html' %}
+
+{% block title %}User Management - JusPal Admin{% endblock %}
+
+{% block content %}
+<main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 py-8 relative z-10 flex flex-col gap-6">
+
+  <!-- Breadcrumbs & Quick Stats -->
+  <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+    <div class="flex items-center gap-2 text-xs font-mono text-slate-500 dark:text-slate-400">
+      <a href="{% url 'admin_index' %}"
+        class="hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors flex items-center gap-1">
+        <span class="material-symbols-outlined text-[15px]">home</span>
+        <span>Dashboard</span>
+      </a>
+      <span>/</span>
+      <span class="text-slate-800 dark:text-slate-200 font-semibold">User Management</span>
+    </div>
+
+    <div class="flex items-center gap-2">
+      <span
+        class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-mono bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 font-medium">
+        <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+        <span>{{ users|length }} User{{ users|length|pluralize }} Registered</span>
+      </span>
+    </div>
+  </div>
+
+  <!-- Main Card -->
+  <div class="glass-card rounded-2xl p-6 sm:p-8 shadow-2xl">
+
+    <!-- Header & Toolbar -->
+    <div
+      class="flex flex-col lg:flex-row lg:items-center justify-between gap-5 pb-6 border-b border-slate-200 dark:border-white/10 mb-6">
+      <div>
+        <h1 class="text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-2.5">
+          <span
+            class="w-9 h-9 rounded-xl bg-gradient-to-tr from-emerald-600 via-teal-600 to-amber-500 flex items-center justify-center text-white shadow-md">
+            <span class="material-symbols-outlined text-[20px]">group</span>
+          </span>
+          User Management
+        </h1>
+        <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">
+          View and manage citizens registered through the JusPal mobile app.
+        </p>
+      </div>
+
+      <!-- Live Search -->
+      <div class="relative">
+        <span
+          class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[18px]">search</span>
+        <input type="text" id="user-search-input" onkeyup="filterUsers()" placeholder="Search name or email..."
+          class="glass-input pl-9 pr-4 py-2 text-xs rounded-xl w-full sm:w-64" />
+      </div>
+    </div>
+
+    {% if users %}
+    <div class="overflow-x-auto rounded-xl border border-slate-200 dark:border-white/10">
+      <table class="w-full text-left border-collapse" id="users-table">
+        <thead>
+          <tr
+            class="bg-slate-100/80 dark:bg-white/5 border-b border-slate-200 dark:border-white/10 text-xs font-mono uppercase tracking-wider text-slate-600 dark:text-slate-300">
+            <th class="py-3.5 px-4 w-16">#</th>
+            <th class="py-3.5 px-4 min-w-[220px]">User & Profile</th>
+            <th class="py-3.5 px-4 min-w-[110px]">User ID</th>
+            <th class="py-3.5 px-4 min-w-[220px]">Email</th>
+            <th class="py-3.5 px-4 text-right min-w-[120px]">Actions</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-200 dark:divide-white/5 text-sm">
+          {% for user in users %}
+          <tr class="user-row hover:bg-emerald-500/5 dark:hover:bg-emerald-500/10 transition-colors"
+            data-name="{{ user.fullname|lower }}" data-email="{{ user.email|lower }}">
+
+            <!-- Row Number -->
+            <td class="py-4 px-4 font-mono text-xs text-slate-500 dark:text-slate-400">
+              <span
+                class="px-2 py-0.5 rounded-md bg-slate-200/60 dark:bg-white/5 border border-slate-300/60 dark:border-white/10">
+                {{ forloop.counter }}
+              </span>
+            </td>
+
+            <!-- Name & Avatar -->
+            <td class="py-4 px-4">
+              <div class="flex items-center gap-3">
+                {% if user.profile %}
+                <button type="button" class="relative flex-shrink-0 group/avatar"
+                  data-src="{{ user.profile.url }}" data-title="Profile Photo: {{ user.fullname }}"
+                  onclick="openMediaModal(this)" title="View profile photo">
+                  <img src="{{ user.profile.url }}" alt="{{ user.fullname }}"
+                    class="w-10 h-10 rounded-full object-cover border-2 border-emerald-500/40 group-hover/avatar:border-emerald-500 transition-all shadow-sm" />
+                  <span
+                    class="material-symbols-outlined absolute inset-0 flex items-center justify-center text-white bg-black/40 rounded-full opacity-0 group-hover/avatar:opacity-100 transition-opacity text-[16px]">zoom_in</span>
+                </button>
+                {% else %}
+                <div
+                  class="w-10 h-10 flex-shrink-0 rounded-full bg-gradient-to-tr from-emerald-600/20 to-teal-600/20 border border-emerald-500/30 flex items-center justify-center text-emerald-600 dark:text-emerald-400 font-bold text-sm">
+                  {{ user.fullname|slice:":1"|upper }}
+                </div>
+                {% endif %}
+                <div>
+                  <div class="font-semibold text-slate-900 dark:text-white">{{ user.fullname }}</div>
+                  <div class="text-[11px] font-mono text-slate-400 dark:text-slate-500 flex items-center gap-1 mt-0.5">
+                    <span class="material-symbols-outlined text-[13px] text-emerald-500">person</span>
+                    <span>App User</span>
+                  </div>
+                </div>
+              </div>
+            </td>
+
+            <!-- User ID -->
+            <td class="py-4 px-4 font-mono text-xs">
+              <span
+                class="px-2.5 py-1 rounded-lg bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20 font-semibold">
+                USR-{{ user.id|stringformat:"04d" }}
+              </span>
+            </td>
+
+            <!-- Email -->
+            <td class="py-4 px-4 text-xs">
+              <a href="mailto:{{ user.email }}"
+                class="flex items-center gap-1.5 text-slate-600 dark:text-slate-300 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors group">
+                <span class="material-symbols-outlined text-[14px] text-slate-400 group-hover:text-emerald-500">mail</span>
+                <span class="truncate max-w-[240px]">{{ user.email }}</span>
+              </a>
+            </td>
+
+            <!-- Delete -->
+            <td class="py-4 px-4 text-right">
+              <button type="button" data-id="{{ user.id }}" data-name="{{ user.fullname }}"
+                data-email="{{ user.email }}" onclick="openDeleteModal(this)"
+                class="px-3 py-1.5 rounded-xl bg-red-500/15 border border-red-500/30 text-red-600 dark:text-red-300 text-xs font-semibold hover:bg-red-500/25 inline-flex items-center gap-1.5 transition-all hover:scale-105"
+                title="Delete user">
+                <span class="material-symbols-outlined text-[15px]">delete</span>
+                <span>Delete</span>
+              </button>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+
+      <!-- No Search Results -->
+      <div id="no-search-results" class="hidden text-center py-12 px-4">
+        <span class="material-symbols-outlined text-slate-400 text-[36px] mb-2">person_search</span>
+        <h4 class="text-sm font-semibold text-slate-800 dark:text-slate-200">No matching users found</h4>
+        <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Try a different name or email.</p>
+      </div>
+    </div>
+    {% else %}
+    <!-- Empty State -->
+    <div
+      class="text-center py-16 px-6 rounded-2xl border border-dashed border-slate-300 dark:border-white/10 bg-slate-50/50 dark:bg-white/[0.02]">
+      <div
+        class="w-16 h-16 rounded-2xl bg-gradient-to-tr from-emerald-500/20 to-teal-500/20 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 mx-auto flex items-center justify-center mb-4">
+        <span class="material-symbols-outlined text-[32px]">group</span>
+      </div>
+      <h3 class="text-lg font-bold text-slate-900 dark:text-white">No Users Registered Yet</h3>
+      <p class="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1.5 max-w-md mx-auto">
+        Users who sign up through the JusPal app will appear here.
+      </p>
+    </div>
+    {% endif %}
+
+  </div>
+</main>
+
+<!-- ========================================================================= -->
+<!-- DELETE USER CONFIRMATION MODAL                                            -->
+<!-- ========================================================================= -->
+<div id="delete-modal"
+  class="fixed inset-0 z-50 hidden flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+  <div class="glass-card w-full max-w-md rounded-2xl p-6 sm:p-7 shadow-2xl border border-red-500/25 relative">
+
+    <div class="flex items-center justify-between pb-4 border-b border-slate-200 dark:border-white/10 mb-4">
+      <div class="flex items-center gap-2.5">
+        <div
+          class="w-10 h-10 rounded-xl bg-red-500/15 border border-red-500/30 text-red-600 dark:text-red-400 flex items-center justify-center">
+          <span class="material-symbols-outlined text-[22px]">warning</span>
+        </div>
+        <div>
+          <h3 class="text-base font-bold text-slate-900 dark:text-white">Delete User</h3>
+          <p class="text-[11px] text-red-600 dark:text-red-400 font-medium">Permanent & Irreversible</p>
+        </div>
+      </div>
+      <button type="button" onclick="closeDeleteModal()"
+        class="text-slate-400 hover:text-slate-600 dark:hover:text-white transition-colors p-1 rounded-lg">
+        <span class="material-symbols-outlined text-[20px]">close</span>
+      </button>
+    </div>
+
+    <div class="space-y-3 mb-5">
+      <p class="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+        Are you sure you want to permanently delete this user account and its profile photo?
+      </p>
+      <div class="p-3.5 rounded-xl bg-red-500/10 border border-red-500/20 text-xs space-y-1">
+        <div class="font-bold text-red-700 dark:text-red-300" id="delete-user-name">User Name</div>
+        <div class="font-mono text-slate-500 dark:text-slate-400" id="delete-user-email">Email</div>
+      </div>
+    </div>
+
+    <form id="delete-user-form" method="POST" action=""
+      class="pt-4 flex items-center justify-end gap-2.5 border-t border-slate-200 dark:border-white/10">
+      {% csrf_token %}
+      <button type="button" onclick="closeDeleteModal()"
+        class="px-4 py-2 rounded-xl border border-slate-300 dark:border-white/15 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-white/5 text-xs font-semibold transition-colors">
+        Cancel
+      </button>
+      <button type="submit"
+        class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white text-xs font-semibold shadow-md flex items-center gap-1.5 transition-all hover:scale-[1.02]">
+        <span class="material-symbols-outlined text-[16px]">delete_forever</span>
+        <span>Yes, Delete User</span>
+      </button>
+    </form>
+  </div>
+</div>
+
+<!-- ========================================================================= -->
+<!-- PROFILE PHOTO PREVIEW MODAL                                               -->
+<!-- ========================================================================= -->
+<div id="media-modal"
+  class="fixed inset-0 z-50 hidden flex items-center justify-center p-4 bg-black/75 backdrop-blur-md">
+  <div class="glass-card max-w-lg w-full rounded-2xl p-4 sm:p-6 shadow-2xl border border-white/20 flex flex-col items-center">
+    <div class="w-full flex items-center justify-between pb-3 border-b border-slate-200 dark:border-white/10 mb-4">
+      <h4 id="media-modal-title" class="text-sm font-bold text-slate-900 dark:text-white truncate pr-4">Profile Photo</h4>
+      <button type="button" onclick="closeMediaModal()"
+        class="text-slate-400 hover:text-slate-600 dark:hover:text-white p-1 rounded-lg">
+        <span class="material-symbols-outlined text-[20px]">close</span>
+      </button>
+    </div>
+    <img id="media-modal-img" src="" alt="Profile preview" class="max-h-[65vh] max-w-full rounded-lg object-contain shadow-lg" />
+  </div>
+</div>
+
+<script>
+  // ── Search ──────────────────────────────────────────────────
+  function filterUsers() {
+    const query = document.getElementById('user-search-input').value.toLowerCase().trim();
+    const rows = document.querySelectorAll('.user-row');
+    let visible = 0;
+    rows.forEach(row => {
+      const match = !query || row.dataset.name.includes(query) || row.dataset.email.includes(query);
+      row.style.display = match ? '' : 'none';
+      if (match) visible++;
+    });
+    const noResults = document.getElementById('no-search-results');
+    if (noResults) noResults.classList.toggle('hidden', !(visible === 0 && rows.length > 0));
+  }
+
+  // ── Delete modal ────────────────────────────────────────────
+  function openDeleteModal(btn) {
+    const { id, name, email } = btn.dataset;
+    document.getElementById('delete-user-form').action = "{% url 'delete_user' 0 %}".replace('/0/', '/' + id + '/');
+    document.getElementById('delete-user-name').textContent = name;
+    document.getElementById('delete-user-email').textContent = email;
+    document.getElementById('delete-modal').classList.remove('hidden');
+  }
+  function closeDeleteModal() {
+    document.getElementById('delete-modal').classList.add('hidden');
+  }
+
+  // ── Photo preview modal ─────────────────────────────────────
+  function openMediaModal(btn) {
+    document.getElementById('media-modal-img').src = btn.dataset.src;
+    document.getElementById('media-modal-title').textContent = btn.dataset.title;
+    document.getElementById('media-modal').classList.remove('hidden');
+  }
+  function closeMediaModal() {
+    document.getElementById('media-modal').classList.add('hidden');
+  }
+
+  // ── Close on Escape / backdrop click ────────────────────────
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') { closeDeleteModal(); closeMediaModal(); }
+  });
+  document.querySelectorAll('#delete-modal, #media-modal').forEach(modal => {
+    modal.addEventListener('click', e => { if (e.target === modal) modal.classList.add('hidden'); });
+  });
+</script>
+{% endblock %}

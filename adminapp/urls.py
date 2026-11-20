@@ -18,4 +18,8 @@ urlpatterns = [
     path('list_officers/', views.list_officers, name='list_officers'),
     path('edit_officer/<int:officer_id>/', views.edit_officer, name='edit_officer'),
     path('delete_officer/<int:officer_id>/', views.delete_officer, name='delete_officer'),
+
+    # ── User Management (Admin) ────────────────────────────────────────────────
+    path('list_users/', views.list_users, name='list_users'),
+    path('delete_user/<int:user_id>/', views.delete_user, name='delete_user'),
 ]

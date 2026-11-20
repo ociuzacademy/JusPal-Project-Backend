@@ -2,6 +2,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from functools import wraps
 from .models import tbl_admin, Category, Officer
+from juspalapp.models import userreg
 
 
 # ==============================================================================
@@ -53,9 +54,11 @@ def admin_index(request):
     """Admin dashboard view."""
     officer_count = Officer.objects.count()
     category_count = Category.objects.count()
+    user_count = userreg.objects.count()
     context = {
         'officer_count': officer_count,
         'category_count': category_count,
+        'user_count': user_count,
     }
     return render(request, "adminapp/admin_index.html", context)
 
@@ -217,3 +220,28 @@ def delete_officer(request, officer_id):
     messages.success(request, f"Officer '{officer_name}' deleted successfully!")
     return redirect('list_officers')
 
+
+
+# ==============================================================================
+# User Management (registered app users — juspalapp.userreg)
+# ==============================================================================
+
+@admin_required
+def list_users(request):
+    """List all registered app users."""
+    users = userreg.objects.all().order_by('-id')
+    return render(request, 'adminapp/list_users.html', {'users': users})
+
+
+@admin_required
+def delete_user(request, user_id):
+    """Delete a registered user (POST only, CSRF-protected)."""
+    if request.method != 'POST':
+        return redirect('list_users')
+    user_instance = get_object_or_404(userreg, id=user_id)
+    user_name = user_instance.fullname
+    if user_instance.profile:
+        user_instance.profile.delete(save=False)
+    user_instance.delete()
+    messages.success(request, f"User '{user_name}' deleted successfully!")
+    return redirect('list_users')
