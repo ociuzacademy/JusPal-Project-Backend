@@ -1,6 +1,6 @@
 from .models import *  # Import your model
 from rest_framework import serializers
-
+from adminapp.models import *
 
 class UserRegSerializers(serializers.ModelSerializer):
     class Meta:
@@ -41,3 +41,22 @@ class UserProfileUpdateSerializer(serializers.ModelSerializer):
         if qs.exists():
             raise serializers.ValidationError("This email is already in use.")
         return value
+
+
+class OfficerLoginSerializer(serializers.Serializer):
+    officer_id = serializers.CharField()
+    password = serializers.CharField(write_only=True)
+
+    def validate(self, data):
+        officer_id = data.get("officer_id")
+        password = data.get("password")
+
+        try:
+            officer = Officer.objects.get(officer_id=officer_id)
+        except Officer.DoesNotExist:
+            raise serializers.ValidationError("Invalid officer ID or password.")
+
+        if officer.Password != password:
+            raise serializers.ValidationError("Invalid officer ID or password.")
+
+        return officer
