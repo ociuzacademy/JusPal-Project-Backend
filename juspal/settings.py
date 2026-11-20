@@ -42,6 +42,7 @@ INSTALLED_APPS = [
     'adminapp',
     'juspalapp',
     'rest_framework',
+    'drf_yasg',
     "debug_toolbar",
 ]
 
