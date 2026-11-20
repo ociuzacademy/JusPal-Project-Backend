@@ -1,3 +1,5 @@
+import logging
+
 from django.shortcuts import render
 from rest_framework.views import APIView
 from rest_framework import status
@@ -134,7 +136,6 @@ class UserProfileUpdateView(APIView):
 
 
 
-
 #-----------------------------------------------------------------------------------------------------------
 # Officer API's
 #-----------------------------------------------------------------------------------------------------------
@@ -152,3 +153,124 @@ class OfficerLoginView(APIView):
             officer = serializer.validated_data
             return Response({"message": "Login successful", "id":officer.id,"officer_id": officer.officer_id,"password":officer.Password}, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+
+#-----------------------------------------------------------------------------------------------------------
+# Complaint API's
+#-----------------------------------------------------------------------------------------------------------
+
+logger = logging.getLogger(__name__)
+
+
+def predict_social_priority(text):
+    """
+    Predict a Social complaint's priority with the ML model in ai_model/.
+    Returns (priority, confidence %) or (None, None) if prediction isn't possible,
+    so a model problem never blocks a citizen from filing a complaint.
+    The model is imported lazily: it loads once, on the first Social complaint.
+    """
+    try:
+        from ai_model.predict_priority import predict_priority
+        label, confidence = predict_priority(text)
+        label = str(label)
+        if label not in Complaints.Priority.values:
+            logger.warning("Priority model returned unknown label %r", label)
+            return None, None
+        return label, float(confidence)
+    except Exception:
+        logger.exception("Priority prediction failed")
+        return None, None
+
+
+class ComplaintCreateView(APIView):
+    """POST /userapp/complaints/create/ — file a Social or Personal complaint."""
+    serializer_class = ComplaintCreateSerializer
+    parser_classes = [MultiPartParser, FormParser]
+
+    @swagger_auto_schema(
+        operation_summary="File a complaint (Social or Personal)",
+        operation_description=(
+            "Social complaints get their priority predicted automatically from the description "
+            "by the ML model. Personal complaints have no priority."
+        ),
+        request_body=ComplaintCreateSerializer,
+        responses={201: ComplaintCreateSerializer, 400: "Validation errors"},
+        tags=["Complaints"],
+    )
+    def post(self, request):
+        serializer = self.serializer_class(data=request.data, context={'request': request})
+        if not serializer.is_valid():
+            return Response({'message': 'Complaint submission failed. Please check the input.',
+                             'errors': serializer.errors},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        extra = {}
+        confidence = None
+        if serializer.validated_data['complaint_type'] == Complaints.ComplaintType.SOCIAL:
+            priority, confidence = predict_social_priority(serializer.validated_data['description'])
+            extra['priority'] = priority
+
+        complaint = serializer.save(**extra)
+        response = {
+            'message': f"Complaint {complaint.complaint_id} submitted successfully!",
+            'data': ComplaintSerializer(complaint, context={'request': request}).data,
+        }
+        if complaint.complaint_type == Complaints.ComplaintType.SOCIAL:
+            response['priority_confidence'] = confidence
+        return Response(response, status=status.HTTP_201_CREATED)
+
+
+class UserComplaintListView(APIView):
+    """GET /userapp/complaints/user/<user_id>/ — all complaints filed by a user."""
+    serializer_class = ComplaintSerializer
+
+    @swagger_auto_schema(
+        operation_summary="List a user's complaints",
+        manual_parameters=[
+            openapi.Parameter('type', openapi.IN_QUERY, type=openapi.TYPE_STRING,
+                              enum=Complaints.ComplaintType.values,
+                              description="Filter by complaint type"),
+            openapi.Parameter('status', openapi.IN_QUERY, type=openapi.TYPE_STRING,
+                              enum=Complaints.Status.values,
+                              description="Filter by status"),
+        ],
+        responses={200: ComplaintSerializer(many=True), 404: "User not found"},
+        tags=["Complaints"],
+    )
+    def get(self, request, user_id):
+        if not userreg.objects.filter(pk=user_id).exists():
+            return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
+
+        complaints = Complaints.objects.filter(user_id=user_id).select_related('category', 'assigned_officer')
+        complaint_type = request.query_params.get('type')
+        status_filter = request.query_params.get('status')
+        if complaint_type:
+            complaints = complaints.filter(complaint_type=complaint_type)
+        if status_filter:
+            complaints = complaints.filter(status_code=status_filter)
+
+        serializer = self.serializer_class(complaints, many=True, context={'request': request})
+        return Response({'message': 'Complaints fetched successfully',
+                         'count': len(serializer.data),
+                         'data': serializer.data},
+                        status=status.HTTP_200_OK)
+
+
+class ComplaintDetailView(APIView):
+    """GET /userapp/complaints/<complaint_id>/ — one complaint, e.g. SOC-2026-0001."""
+    serializer_class = ComplaintSerializer
+
+    @swagger_auto_schema(
+        operation_summary="Get complaint details by complaint ID",
+        responses={200: ComplaintSerializer, 404: "Complaint not found"},
+        tags=["Complaints"],
+    )
+    def get(self, request, complaint_id):
+        complaint = (Complaints.objects.select_related('category', 'assigned_officer')
+                     .filter(complaint_id=complaint_id).first())
+        if not complaint:
+            return Response({'error': 'Complaint not found'}, status=status.HTTP_404_NOT_FOUND)
+        serializer = self.serializer_class(complaint, context={'request': request})
+        return Response({'message': 'Complaint fetched successfully', 'data': serializer.data},
+                        status=status.HTTP_200_OK)
