@@ -17,13 +17,24 @@ schema_view = get_schema_view(
 )
 
 urlpatterns = [
-    # User APIs
+    #----------------------------------------------------------------------------------------------------------
+    #    User APIs
+    #----------------------------------------------------------------------------------------------------------
     path('register/', UserCreateView.as_view(), name='user_register'),
     path('login/', loginCreateView.as_view(), name='user_login'),
     path('profile/<int:pk>/', UserProfileView.as_view(), name='user_profile'),
     path('profile/<int:pk>/edit/', UserProfileUpdateView.as_view(), name='user_profile_edit'),
 
+    #---------------------------------------------------------------------------------------------------------
+    #   officer apis
+    #-----------------------------------------------------------------------------------------------------------
+    path('officer/login/', OfficerLoginView.as_view(), name='officer-login'),
+
+
+
+    #------------------------------------------------------------------------------------------------------------
     # Swagger / OpenAPI docs
+    #------------------------------------------------------------------------------------------------------------
     re_path(r'^swagger(?P<format>\.json|\.yaml)$', schema_view.without_ui(cache_timeout=0), name='schema-json'),
     path('swagger/', schema_view.with_ui('swagger', cache_timeout=0), name='schema-swagger-ui'),
     path('redoc/', schema_view.with_ui('redoc', cache_timeout=0), name='schema-redoc'),

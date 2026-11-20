@@ -7,7 +7,17 @@ from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 from .serializers import *
 from .models import *
+from adminapp.models import *
 # Create your views here.
+
+
+#----------------------------------------------------------------------------------------------------------
+# USER API'S
+#----------------------------------------------------------------------------------------------------------
+
+#----------------------------------------------------------------------------------------------------------
+# User Creation
+#----------------------------------------------------------------------------------------------------------
 class UserCreateView(APIView):
     serializer_class = UserRegSerializers
     parser_classes = [MultiPartParser, FormParser]
@@ -34,8 +44,9 @@ class UserCreateView(APIView):
             "errors": serializer.errors
         }
         return Response(error_response, status=status.HTTP_400_BAD_REQUEST)
-
-
+#-----------------------------------------------------------------------------------------------------------
+# User Login
+#-----------------------------------------------------------------------------------------------------------
 class loginCreateView(APIView):
     serializer_class = loginSerializers
 
@@ -61,7 +72,9 @@ class loginCreateView(APIView):
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-
+#-----------------------------------------------------------------------------------------------------------
+# User profile
+#-----------------------------------------------------------------------------------------------------------
 class UserProfileView(APIView):
     """GET /userapp/profile/<id>/ — view a user's profile."""
     serializer_class = UserProfileSerializer
@@ -79,7 +92,9 @@ class UserProfileView(APIView):
         return Response({'message': 'Profile fetched successfully', 'data': serializer.data},
                         status=status.HTTP_200_OK)
 
-
+#-----------------------------------------------------------------------------------------------------------
+# User Profile Update
+#-----------------------------------------------------------------------------------------------------------
 class UserProfileUpdateView(APIView):
     """PUT/PATCH /userapp/profile/<id>/edit/ — edit a user's profile (multipart/form-data, supports image upload)."""
     serializer_class = UserProfileUpdateSerializer
@@ -116,3 +131,24 @@ class UserProfileUpdateView(APIView):
     )
     def patch(self, request, pk):
         return self._update(request, pk)
+
+
+
+
+#-----------------------------------------------------------------------------------------------------------
+# Officer API's
+#-----------------------------------------------------------------------------------------------------------
+
+
+#----------------------------------------------------------------------------------------------------------Officer Loginpdate
+# Officer Login
+#-----------------------------------------------------------------------------------------------------------
+class OfficerLoginView(APIView):
+    serializer_class = OfficerLoginSerializer
+
+    def post(self, request):
+        serializer = self.serializer_class(data=request.data)
+        if serializer.is_valid():
+            officer = serializer.validated_data
+            return Response({"message": "Login successful", "id":officer.id,"officer_id": officer.officer_id,"password":officer.Password}, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
