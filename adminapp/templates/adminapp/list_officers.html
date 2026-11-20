@@ -1,0 +1,640 @@
+{% extends 'adminapp/admin_index.html' %}
+
+{% block title %}Officers Directory - JusPal Admin{% endblock %}
+
+{% block content %}
+<main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 py-8 relative z-10 flex flex-col gap-6">
+
+  <!-- Breadcrumbs & Quick Stats -->
+  <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+    <div class="flex items-center gap-2 text-xs font-mono text-slate-500 dark:text-slate-400">
+      <a href="{% url 'admin_index' %}"
+        class="hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors flex items-center gap-1">
+        <span class="material-symbols-outlined text-[15px]">home</span>
+        <span>Dashboard</span>
+      </a>
+      <span>/</span>
+      <span class="text-slate-800 dark:text-slate-200 font-semibold">Officers Directory</span>
+    </div>
+
+    <div class="flex items-center gap-2">
+      <span
+        class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-mono bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 font-medium">
+        <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+        <span id="officer-count-badge">{{ officers|length }} Officers Registered</span>
+      </span>
+    </div>
+  </div>
+
+  <!-- Main Card -->
+  <div class="glass-card rounded-2xl p-6 sm:p-8 shadow-2xl">
+
+    <!-- Header & Action Toolbar -->
+    <div
+      class="flex flex-col lg:flex-row lg:items-center justify-between gap-5 pb-6 border-b border-slate-200 dark:border-white/10 mb-6">
+      <div>
+        <h1 class="text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-2.5">
+          <span
+            class="w-9 h-9 rounded-xl bg-gradient-to-tr from-emerald-600 via-teal-600 to-amber-500 flex items-center justify-center text-white shadow-md">
+            <span class="material-symbols-outlined text-[20px]">badge</span>
+          </span>
+          Legal Aid Officers Directory
+        </h1>
+        <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">
+          Browse, inspect credentials, allocate departments, and manage security passwords for accredited officers.
+        </p>
+      </div>
+
+      <!-- Search, Filter & Register Actions -->
+      <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+        <!-- Live Search Input -->
+        <div class="relative">
+          <span
+            class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[18px]">search</span>
+          <input type="text" id="officer-search-input" onkeyup="filterOfficers()"
+            placeholder="Search name, badge, email..."
+            class="glass-input pl-9 pr-4 py-2 text-xs rounded-xl w-full sm:w-60" />
+        </div>
+
+        <!-- Department Filter Dropdown -->
+        <div class="relative">
+          <select id="dept-filter-select" onchange="filterOfficers()"
+            class="glass-input pl-3 pr-8 py-2 text-xs rounded-xl w-full sm:w-44 appearance-none cursor-pointer">
+            <option value="">All Departments</option>
+            {% for cat in categories %}
+            <option value="{{ cat.name|lower }}">{{ cat.name }}</option>
+            {% endfor %}
+          </select>
+          <span
+            class="material-symbols-outlined absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none text-[16px]">filter_list</span>
+        </div>
+
+        <!-- Add Officer CTA -->
+        <a href="{% url 'add_officer' %}"
+          class="px-4 py-2.5 glow-button text-white text-xs font-semibold rounded-xl flex items-center justify-center gap-2 shadow-md hover:scale-[1.02] transition-transform whitespace-nowrap">
+          <span class="material-symbols-outlined text-[18px]">person_add</span>
+          <span>Register Officer</span>
+        </a>
+      </div>
+    </div>
+
+    <!-- Table or Empty State -->
+    {% if officers %}
+    <div class="overflow-x-auto rounded-xl border border-slate-200 dark:border-white/10">
+      <table class="w-full text-left border-collapse" id="officers-table">
+        <thead>
+          <tr
+            class="bg-slate-100/80 dark:bg-white/5 border-b border-slate-200 dark:border-white/10 text-xs font-mono uppercase tracking-wider text-slate-600 dark:text-slate-300">
+            <th class="py-3.5 px-4 w-16">#</th>
+            <th class="py-3.5 px-4 min-w-[220px]">Officer & Profile</th>
+            <th class="py-3.5 px-4 min-w-[140px]">Badge / ID</th>
+            <th class="py-3.5 px-4 min-w-[170px]">Department</th>
+            <th class="py-3.5 px-4 min-w-[110px]">Status</th>
+            <th class="py-3.5 px-4 min-w-[200px]">Contact Info</th>
+            <th class="py-3.5 px-4 text-center min-w-[110px]">ID Proof</th>
+            <th class="py-3.5 px-4 text-right min-w-[180px]">Security & Actions</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-200 dark:divide-white/5 text-sm" id="officers-tbody">
+          {% for officer in officers %}
+          <tr class="officer-row hover:bg-emerald-500/5 dark:hover:bg-emerald-500/10 transition-colors"
+            data-name="{{ officer.Fullname|lower }}" data-badge="{{ officer.officer_id|lower }}"
+            data-email="{{ officer.Email|lower }}" data-phone="{{ officer.Phone }}"
+            data-dept="{{ officer.category.name|lower }}" data-gender="{{ officer.Gender|lower }}">
+            <!-- Row Number -->
+            <td class="py-4 px-4 font-mono text-xs text-slate-500 dark:text-slate-400">
+              <span
+                class="px-2 py-0.5 rounded-md bg-slate-200/60 dark:bg-white/5 border border-slate-300/60 dark:border-white/10">
+                {{ forloop.counter }}
+              </span>
+            </td>
+
+            <!-- Officer Name & Avatar -->
+            <td class="py-4 px-4">
+              <div class="flex items-center gap-3">
+                <!-- Avatar Thumbnail -->
+                <div class="relative flex-shrink-0 {% if officer.profile %}cursor-pointer group/avatar{% endif %}" {% if officer.profile %}onclick="openMediaModal('{{ officer.profile.url }}', 'Profile Photo: {{ officer.Fullname|escapejs }}')"
+                  {% endif %}>
+                  {% if officer.profile %}
+                  <img src="{{ officer.profile.url }}" alt="{{ officer.Fullname }}"
+                    class="w-10 h-10 rounded-full object-cover border-2 border-emerald-500/40 group-hover/avatar:border-emerald-500 transition-all shadow-sm" />
+                  <span
+                    class="material-symbols-outlined absolute inset-0 flex items-center justify-center text-white bg-black/40 rounded-full opacity-0 group-hover/avatar:opacity-100 transition-opacity text-[16px]">
+                    zoom_in
+                  </span>
+                  {% else %}
+                  <div
+                    class="w-10 h-10 rounded-full bg-gradient-to-tr from-emerald-600/20 to-teal-600/20 border border-emerald-500/30 flex items-center justify-center text-emerald-600 dark:text-emerald-400 font-bold text-sm">
+                    {{ officer.Fullname|slice:":1"|upper }}
+                  </div>
+                  {% endif %}
+                </div>
+
+                <!-- Name and Gender Badge -->
+                <div>
+                  <div class="font-semibold text-slate-900 dark:text-white officer-name flex items-center gap-1.5">
+                    <span>{{ officer.Fullname }}</span>
+                    {% if officer.Gender == 'Female' %}
+                    <span
+                      class="px-1.5 py-0.2 rounded text-[10px] font-mono bg-pink-500/15 text-pink-700 dark:text-pink-300 border border-pink-500/25"
+                      title="Gender: Female">F</span>
+                    {% else %}
+                    <span
+                      class="px-1.5 py-0.2 rounded text-[10px] font-mono bg-cyan-500/15 text-cyan-700 dark:text-cyan-300 border border-cyan-500/25"
+                      title="Gender: Male">M</span>
+                    {% endif %}
+                  </div>
+                  <div class="text-[11px] font-mono text-slate-400 dark:text-slate-500 flex items-center gap-1 mt-0.5">
+                    <span class="material-symbols-outlined text-[13px] text-emerald-500">verified</span>
+                    <span>Accredited Legal Counsel</span>
+                  </div>
+                </div>
+              </div>
+            </td>
+
+            <!-- Officer / Badge ID -->
+            <td class="py-4 px-4 font-mono text-xs">
+              <span
+                class="px-2.5 py-1 rounded-lg bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20 font-semibold tracking-wide inline-flex items-center gap-1">
+                <span class="material-symbols-outlined text-[14px]">id_card</span>
+                <span>{{ officer.officer_id }}</span>
+              </span>
+            </td>
+
+            <!-- Category / Department -->
+            <td class="py-4 px-4">
+              <div class="flex items-center gap-1.5">
+                <span class="material-symbols-outlined text-[16px] text-teal-600 dark:text-teal-400">domain</span>
+                <span class="font-medium text-slate-800 dark:text-slate-200 text-xs dept-name">
+                  {{ officer.category.name }}
+                </span>
+              </div>
+            </td>
+            <!-- Active status -->
+            <td class="py-4 px-4">
+              {% if officer.is_active %}
+              <span
+                class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-mono font-medium bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                Active
+              </span>
+              {% else %}
+              <span
+                class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-mono font-medium bg-red-500/15 text-red-700 dark:text-red-300 border border-red-500/30">
+                <span class="w-1.5 h-1.5 rounded-full bg-red-500"></span>
+                Inactive
+              </span>
+              {% endif %}
+            </td>
+            <!-- Contact Info -->
+            <td class="py-4 px-4 text-xs">
+              <div class="space-y-1">
+                <a href="mailto:{{ officer.Email }}"
+                  class="flex items-center gap-1.5 text-slate-600 dark:text-slate-300 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors group">
+                  <span
+                    class="material-symbols-outlined text-[14px] text-slate-400 group-hover:text-emerald-500">mail</span>
+                  <span class="truncate max-w-[180px]">{{ officer.Email }}</span>
+                </a>
+                <a href="tel:{{ officer.Phone }}"
+                  class="flex items-center gap-1.5 font-mono text-slate-500 dark:text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors group">
+                  <span
+                    class="material-symbols-outlined text-[14px] text-slate-400 group-hover:text-emerald-500">call</span>
+                  <span>{{ officer.Phone }}</span>
+                </a>
+              </div>
+            </td>
+
+            <!-- ID Card Document Proof -->
+            <td class="py-4 px-4 text-center">
+              {% if officer.id_card %}
+              <button type="button"
+                onclick="openMediaModal('{{ officer.id_card.url }}', 'ID Card Proof: {{ officer.Fullname|escapejs }} (Badge {{ officer.officer_id|escapejs }})')"
+                class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-mono font-medium bg-teal-500/10 text-teal-700 dark:text-teal-300 border border-teal-500/25 hover:bg-teal-500/20 transition-all hover:scale-105"
+                title="Inspect Government / Bar ID Card">
+                <span class="material-symbols-outlined text-[15px]">image</span>
+                <span>View ID</span>
+              </button>
+              {% else %}
+              <span class="text-xs font-mono text-slate-400 dark:text-slate-500 inline-flex items-center gap-1">
+                <span class="material-symbols-outlined text-[14px]">hide_image</span>
+                <span>None</span>
+              </span>
+              {% endif %}
+            </td>
+
+            <!-- Security (Password) & Delete Actions -->
+            <td class="py-4 px-4 text-right">
+              <div class="inline-flex items-center gap-2">
+
+            <!-- Edit Officer Trigger Button -->
+            <button type="button"
+              data-id="{{ officer.id }}"
+              data-name="{{ officer.Fullname }}"
+              data-badge="{{ officer.officer_id }}"
+              data-active="{% if officer.is_active %}true{% else %}false{% endif %}"
+              onclick="openPasswordModal(this)"
+              class="px-3 py-1.5 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-700 dark:text-amber-300 text-xs font-semibold hover:bg-amber-500/25 flex items-center gap-1.5 transition-all hover:scale-105"
+              title="Edit Officer">
+              <span class="material-symbols-outlined text-[15px]">edit</span>
+              <span>Edit</span>
+            </button>
+
+                <!-- Delete Trigger Button -->
+                <button type="button"
+                  onclick="openDeleteModal('{{ officer.id }}', '{{ officer.Fullname|escapejs }}', '{{ officer.officer_id|escapejs }}', '{{ officer.category.name|escapejs }}')"
+                  class="px-3 py-1.5 rounded-xl bg-red-500/15 border border-red-500/30 text-red-600 dark:text-red-300 text-xs font-semibold hover:bg-red-500/25 flex items-center gap-1.5 transition-all hover:scale-105"
+                  title="Delete Officer Record">
+                  <span class="material-symbols-outlined text-[15px]">delete</span>
+                  <span>Delete</span>
+                </button>
+
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+
+      <!-- No Filter Results Match Banner -->
+      <div id="no-search-results" class="hidden text-center py-12 px-4">
+        <span class="material-symbols-outlined text-slate-400 text-[36px] mb-2">person_search</span>
+        <h4 class="text-sm font-semibold text-slate-800 dark:text-slate-200">No matching legal officers found</h4>
+        <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Try adjusting your search criteria or resetting the
+          department filter.</p>
+        <button type="button" onclick="resetFilters()"
+          class="mt-3 px-3 py-1.5 rounded-lg bg-emerald-500/15 border border-emerald-500/30 text-emerald-700 dark:text-emerald-300 text-xs font-semibold hover:bg-emerald-500/25 transition-colors">
+          Reset Filters
+        </button>
+      </div>
+    </div>
+    {% else %}
+    <!-- Empty State -->
+    <div
+      class="text-center py-16 px-6 rounded-2xl border border-dashed border-slate-300 dark:border-white/10 bg-slate-50/50 dark:bg-white/[0.02]">
+      <div
+        class="w-16 h-16 rounded-2xl bg-gradient-to-tr from-emerald-500/20 to-teal-500/20 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 mx-auto flex items-center justify-center mb-4 shadow-inner">
+        <span class="material-symbols-outlined text-[32px]">badge</span>
+      </div>
+      <h3 class="text-lg font-bold text-slate-900 dark:text-white">No Legal Officers Registered Yet</h3>
+      <p class="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1.5 max-w-md mx-auto leading-relaxed">
+        Enroll advocates, legal counsels, and case officers to assign departments and allow citizen aid requests.
+      </p>
+      <div class="mt-6">
+        <a href="{% url 'add_officer' %}"
+          class="inline-flex items-center gap-2 px-5 py-2.5 glow-button text-white text-xs font-semibold rounded-xl shadow-lg">
+          <span class="material-symbols-outlined text-[18px]">person_add</span>
+          <span>Register First Officer</span>
+        </a>
+      </div>
+    </div>
+    {% endif %}
+
+  </div>
+</main>
+
+<!-- ========================================================================= -->
+<!-- 1. EDIT PASSWORD MODAL                                                    -->
+<!-- ========================================================================= -->
+<div id="password-modal"
+  class="fixed inset-0 z-50 hidden flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
+  <div class="glass-card w-full max-w-md rounded-2xl p-6 sm:p-7 shadow-2xl border border-white/20 relative"
+    onclick="event.stopPropagation()">
+
+    <!-- Modal Header -->
+    <div class="flex items-center justify-between pb-4 border-b border-slate-200 dark:border-white/10 mb-5">
+      <div class="flex items-center gap-2.5">
+        <div
+          class="w-9 h-9 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-600 dark:text-amber-400 flex items-center justify-center">
+          <span class="material-symbols-outlined text-[20px]">key</span>
+        </div>
+        <div>
+          <h3 class="text-base font-bold text-slate-900 dark:text-white">Change Officer Password</h3>
+          <p class="text-[11px] text-slate-500 dark:text-slate-400">Security credential override</p>
+        </div>
+      </div>
+      <button type="button" onclick="closePasswordModal()"
+        class="text-slate-400 hover:text-slate-600 dark:hover:text-white transition-colors p-1 rounded-lg">
+        <span class="material-symbols-outlined text-[20px]">close</span>
+      </button>
+    </div>
+
+    <!-- Officer Context Banner -->
+    <div
+      class="p-3.5 rounded-xl bg-slate-100/70 dark:bg-white/5 border border-slate-200/80 dark:border-white/10 mb-5 flex items-center gap-3">
+      <div
+        class="w-8 h-8 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 font-bold text-xs flex items-center justify-center border border-emerald-500/25">
+        <span class="material-symbols-outlined text-[16px]">person</span>
+      </div>
+      <div class="overflow-hidden">
+        <div id="modal-officer-name" class="font-semibold text-slate-900 dark:text-white text-xs truncate">Officer Name
+        </div>
+        <div id="modal-officer-badge" class="font-mono text-[11px] text-slate-400 dark:text-slate-500">Badge ID</div>
+      </div>
+    </div>
+
+    <!-- Edit Password Form -->
+      <form id="edit-password-form" method="POST" action="" class="space-y-4">
+        {% csrf_token %}
+
+        <!-- Status -->
+        <div class="space-y-1.5">
+          <label for="modal-officer-status"
+            class="block text-xs font-semibold text-slate-700 dark:text-slate-200 uppercase tracking-wider">
+            Account Status
+          </label>
+          <div class="relative">
+            <span class="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-[18px]">toggle_on</span>
+            <select id="modal-officer-status" name="is_active"
+              class="glass-input block w-full h-11 pl-11 pr-8 text-sm rounded-xl appearance-none cursor-pointer">
+              <option value="True">Active</option>
+              <option value="False">Inactive</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Password (optional) -->
+        <div class="space-y-1.5">
+          <label for="modal-new-password"
+            class="block text-xs font-semibold text-slate-700 dark:text-slate-200 uppercase tracking-wider">
+            New Password <span class="text-slate-400 normal-case font-normal">(leave blank to keep current)</span>
+          </label>
+          <div class="relative">
+            <span class="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-[18px]">lock</span>
+            <input type="password" id="modal-new-password" name="password" maxlength="50"
+              placeholder="Enter new account password"
+              class="glass-input block w-full h-11 pl-11 pr-11 text-sm rounded-xl focus:ring-2 focus:ring-amber-500/20" />
+            <button type="button" onclick="toggleModalPassword()"
+              class="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
+              title="Toggle visibility">
+              <span class="material-symbols-outlined text-[18px]" id="modal-password-toggle-icon">visibility</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Modal Actions -->
+        <div class="pt-4 flex items-center justify-end gap-2.5 border-t border-slate-200 dark:border-white/10">
+          <button type="button" onclick="closePasswordModal()"
+            class="px-4 py-2 rounded-xl border border-slate-300 dark:border-white/15 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-white/5 text-xs font-semibold transition-colors">
+            Cancel
+          </button>
+          <button type="submit"
+            class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-white text-xs font-semibold shadow-md flex items-center gap-1.5 transition-all hover:scale-[1.02]">
+            <span class="material-symbols-outlined text-[16px]">check_circle</span>
+            <span>Save Changes</span>
+          </button>
+        </div>
+      </form>
+
+  </div>
+</div>
+
+<!-- ========================================================================= -->
+<!-- 2. DELETE OFFICER CONFIRMATION MODAL                                      -->
+<!-- ========================================================================= -->
+<div id="delete-modal"
+  class="fixed inset-0 z-50 hidden flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
+  <div class="glass-card w-full max-w-md rounded-2xl p-6 sm:p-7 shadow-2xl border border-red-500/25 relative"
+    onclick="event.stopPropagation()">
+
+    <!-- Modal Header -->
+    <div class="flex items-center justify-between pb-4 border-b border-slate-200 dark:border-white/10 mb-4">
+      <div class="flex items-center gap-2.5">
+        <div
+          class="w-10 h-10 rounded-xl bg-red-500/15 border border-red-500/30 text-red-600 dark:text-red-400 flex items-center justify-center">
+          <span class="material-symbols-outlined text-[22px]">warning</span>
+        </div>
+        <div>
+          <h3 class="text-base font-bold text-slate-900 dark:text-white">Delete Officer Record</h3>
+          <p class="text-[11px] text-red-600 dark:text-red-400 font-medium">Permanent & Irreversible</p>
+        </div>
+      </div>
+      <button type="button" onclick="closeDeleteModal()"
+        class="text-slate-400 hover:text-slate-600 dark:hover:text-white transition-colors p-1 rounded-lg">
+        <span class="material-symbols-outlined text-[20px]">close</span>
+      </button>
+    </div>
+
+    <!-- Confirmation Description -->
+    <div class="space-y-3 mb-5">
+      <p class="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+        Are you sure you want to permanently remove this officer from the JusPal administrative ledger?
+      </p>
+
+      <div class="p-3.5 rounded-xl bg-red-500/10 border border-red-500/20 text-xs space-y-1">
+        <div class="font-bold text-red-700 dark:text-red-300" id="delete-officer-name">Advocate Name</div>
+        <div class="font-mono text-slate-500 dark:text-slate-400" id="delete-officer-badge">Badge ID</div>
+        <div class="text-slate-500 dark:text-slate-400" id="delete-officer-dept">Department</div>
+      </div>
+
+      <p class="text-[11px] text-slate-400 dark:text-slate-500">
+        All active assignments and historical ledger references for this officer will be detached.
+      </p>
+    </div>
+
+    <!-- Modal Actions -->
+    <div class="pt-4 flex items-center justify-end gap-2.5 border-t border-slate-200 dark:border-white/10">
+      <button type="button" onclick="closeDeleteModal()"
+        class="px-4 py-2 rounded-xl border border-slate-300 dark:border-white/15 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-white/5 text-xs font-semibold transition-colors">
+        Cancel
+      </button>
+      <a id="confirm-delete-link" href=""
+        class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white text-xs font-semibold shadow-md flex items-center gap-1.5 transition-all hover:scale-[1.02]">
+        <span class="material-symbols-outlined text-[16px]">delete_forever</span>
+        <span>Yes, Delete Officer</span>
+      </a>
+    </div>
+
+  </div>
+</div>
+
+<!-- ========================================================================= -->
+<!-- 3. MEDIA LIGHTBOX PREVIEW MODAL                                           -->
+<!-- ========================================================================= -->
+<div id="media-modal"
+  class="fixed inset-0 z-50 hidden flex items-center justify-center p-4 bg-black/75 backdrop-blur-md animate-fade-in"
+  onclick="closeMediaModal()">
+  <div
+    class="glass-card max-w-2xl w-full rounded-2xl p-4 sm:p-6 shadow-2xl border border-white/20 relative flex flex-col items-center"
+    onclick="event.stopPropagation()">
+
+    <div class="w-full flex items-center justify-between pb-3 border-b border-slate-200 dark:border-white/10 mb-4">
+      <h4 id="media-modal-title" class="text-xs sm:text-sm font-bold text-slate-900 dark:text-white truncate pr-4">
+        Document Inspection
+      </h4>
+      <button type="button" onclick="closeMediaModal()"
+        class="text-slate-400 hover:text-slate-600 dark:hover:text-white p-1 rounded-lg">
+        <span class="material-symbols-outlined text-[20px]">close</span>
+      </button>
+    </div>
+
+    <div
+      class="w-full max-h-[70vh] flex items-center justify-center overflow-auto rounded-xl bg-slate-900/10 dark:bg-black/40 p-2">
+      <img id="media-modal-img" src="" alt="Document Preview"
+        class="max-h-[65vh] max-w-full rounded-lg object-contain shadow-lg" />
+    </div>
+
+    <div class="w-full flex justify-end mt-4">
+      <button type="button" onclick="closeMediaModal()"
+        class="px-4 py-2 rounded-xl bg-slate-200 dark:bg-white/10 text-xs font-semibold text-slate-800 dark:text-slate-200 hover:bg-slate-300 dark:hover:bg-white/20 transition-colors">
+        Close Preview
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Client-side Logic: Filter, Search, and Modals -->
+<script>
+  // ---------------------------------------------------------
+  // Filtering & Search
+  // ---------------------------------------------------------
+  function filterOfficers() {
+    const searchInput = document.getElementById('officer-search-input');
+    const deptSelect = document.getElementById('dept-filter-select');
+    const query = searchInput ? searchInput.value.toLowerCase().trim() : '';
+    const selectedDept = deptSelect ? deptSelect.value.toLowerCase().trim() : '';
+
+    const rows = document.querySelectorAll('.officer-row');
+    const noResults = document.getElementById('no-search-results');
+    let visibleCount = 0;
+
+    rows.forEach(row => {
+      const name = row.getAttribute('data-name') || '';
+      const badge = row.getAttribute('data-badge') || '';
+      const email = row.getAttribute('data-email') || '';
+      const phone = row.getAttribute('data-phone') || '';
+      const dept = row.getAttribute('data-dept') || '';
+
+      const matchesQuery = !query || name.includes(query) || badge.includes(query) || email.includes(query) || phone.includes(query) || dept.includes(query);
+      const matchesDept = !selectedDept || dept === selectedDept;
+
+      if (matchesQuery && matchesDept) {
+        row.style.display = '';
+        visibleCount++;
+      } else {
+        row.style.display = 'none';
+      }
+    });
+
+    if (noResults) {
+      if (visibleCount === 0 && rows.length > 0) {
+        noResults.classList.remove('hidden');
+      } else {
+        noResults.classList.add('hidden');
+      }
+    }
+  }
+
+  function resetFilters() {
+    const searchInput = document.getElementById('officer-search-input');
+    const deptSelect = document.getElementById('dept-filter-select');
+    if (searchInput) searchInput.value = '';
+    if (deptSelect) deptSelect.value = '';
+    filterOfficers();
+  }
+
+  // ---------------------------------------------------------
+  // Password Modal Handlers
+  // ---------------------------------------------------------
+  function openPasswordModal(btn) {
+    const { id, name, badge, active } = btn.dataset;
+
+    const modal = document.getElementById('password-modal');
+    const form = document.getElementById('edit-password-form');
+    const nameEl = document.getElementById('modal-officer-name');
+    const badgeEl = document.getElementById('modal-officer-badge');
+    const input = document.getElementById('modal-new-password');
+    const status = document.getElementById('modal-officer-status');
+
+    if (form) form.action = "{% url 'edit_officer' 0 %}".replace('0', id);
+    if (nameEl) nameEl.textContent = name;
+    if (badgeEl) badgeEl.textContent = "Badge ID: #" + badge;
+    if (status) status.value = (active === 'true') ? 'True' : 'False';
+    if (input) {
+      input.value = '';
+      setTimeout(() => input.focus(), 100);
+    }
+    if (modal) modal.classList.remove('hidden');
+  }
+  function closePasswordModal() {
+    const modal = document.getElementById('password-modal');
+    if (modal) modal.classList.add('hidden');
+  }
+
+  function toggleModalPassword() {
+    const input = document.getElementById('modal-new-password');
+    const icon = document.getElementById('modal-password-toggle-icon');
+    if (!input || !icon) return;
+    if (input.type === 'password') {
+      input.type = 'text';
+      icon.textContent = 'visibility_off';
+    } else {
+      input.type = 'password';
+      icon.textContent = 'visibility';
+    }
+  }
+
+  // ---------------------------------------------------------
+  // Delete Modal Handlers
+  // ---------------------------------------------------------
+  function openDeleteModal(officerId, officerName, badgeId, deptName) {
+    const modal = document.getElementById('delete-modal');
+    const link = document.getElementById('confirm-delete-link');
+    const nameEl = document.getElementById('delete-officer-name');
+    const badgeEl = document.getElementById('delete-officer-badge');
+    const deptEl = document.getElementById('delete-officer-dept');
+
+    if (link) {
+      link.href = "{% url 'delete_officer' 0 %}".replace('0', officerId);
+    }
+    if (nameEl) nameEl.textContent = officerName;
+    if (badgeEl) badgeEl.textContent = "Accreditation ID: " + badgeId;
+    if (deptEl) deptEl.textContent = "Department: " + deptName;
+
+    if (modal) {
+      modal.classList.remove('hidden');
+    }
+  }
+
+  function closeDeleteModal() {
+    const modal = document.getElementById('delete-modal');
+    if (modal) modal.classList.add('hidden');
+  }
+
+  // ---------------------------------------------------------
+  // Media Lightbox Modal Handlers
+  // ---------------------------------------------------------
+  function openMediaModal(mediaUrl, titleText) {
+    if (!mediaUrl) return;
+    const modal = document.getElementById('media-modal');
+    const img = document.getElementById('media-modal-img');
+    const title = document.getElementById('media-modal-title');
+
+    if (img) img.src = mediaUrl;
+    if (title) title.textContent = titleText || 'Document Preview';
+    if (modal) modal.classList.remove('hidden');
+  }
+
+  function closeMediaModal() {
+    const modal = document.getElementById('media-modal');
+    if (modal) modal.classList.add('hidden');
+  }
+
+  // Close modals on Escape key
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') {
+      closePasswordModal();
+      closeDeleteModal();
+      closeMediaModal();
+    }
+  });
+
+  // Close modals on backdrop click
+  document.querySelectorAll('#password-modal, #delete-modal, #media-modal').forEach(modal => {
+    modal.addEventListener('click', function (e) {
+      if (e.target === modal) {
+        modal.classList.add('hidden');
+      }
+    });
+  });
+</script>
+{% endblock %}
