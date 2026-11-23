@@ -2,7 +2,8 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from functools import wraps
 from .models import tbl_admin, Category, Officer
-from juspalapp.models import userreg
+from django.db.models import Q, Count
+from juspalapp.models import userreg, Complaints
 
 
 # ==============================================================================
@@ -245,3 +246,127 @@ def delete_user(request, user_id):
     user_instance.delete()
     messages.success(request, f"User '{user_name}' deleted successfully!")
     return redirect('list_users')
+
+
+# ==============================================================================
+# Complaint Management
+# ==============================================================================
+
+@admin_required
+def complaint_list(request):
+    """Grid of all complaints with search and filters (type / status / priority / department)."""
+    complaints = Complaints.objects.select_related('category', 'assigned_officer', 'user')
+
+    # ── Filters from the query string ─────────────────────────────────────────
+    q = request.GET.get('q', '').strip()
+    filters = {
+        'type': request.GET.get('type', ''),
+        'status': request.GET.get('status', ''),
+        'priority': request.GET.get('priority', ''),
+        'category': request.GET.get('category', ''),
+        'assigned': request.GET.get('assigned', ''),
+    }
+    if q:
+        complaints = complaints.filter(
+            Q(complaint_id__icontains=q) | Q(name__icontains=q) | Q(email__icontains=q)
+            | Q(phone__icontains=q) | Q(city__icontains=q) | Q(description__icontains=q)
+        )
+    if filters['type']:
+        complaints = complaints.filter(complaint_type=filters['type'])
+    if filters['status']:
+        complaints = complaints.filter(status_code=filters['status'])
+    if filters['priority']:
+        complaints = complaints.filter(priority=filters['priority'])
+    if filters['category'].isdigit():
+        complaints = complaints.filter(category_id=filters['category'])
+    if filters['assigned'] == 'yes':
+        complaints = complaints.filter(assigned_officer__isnull=False)
+    elif filters['assigned'] == 'no':
+        complaints = complaints.filter(assigned_officer__isnull=True)
+
+    # ── Headline counts (over all complaints, not the filtered set) ───────────
+    stats = Complaints.objects.aggregate(
+        total=Count('id'),
+        pending=Count('id', filter=Q(status_code=Complaints.Status.PENDING)),
+        in_progress=Count('id', filter=Q(status_code=Complaints.Status.IN_PROGRESS)),
+        resolved=Count('id', filter=Q(status_code=Complaints.Status.RESOLVED)),
+        unassigned=Count('id', filter=Q(assigned_officer__isnull=True)),
+    )
+
+    return render(request, 'adminapp/complaint_list.html', {
+        'complaints': complaints,
+        'stats': stats,
+        'q': q,
+        'filters': filters,
+        'is_filtered': bool(q or any(filters.values())),
+        'categories': Category.objects.all().order_by('name'),
+        'type_choices': Complaints.ComplaintType.choices,
+        'status_choices': Complaints.Status.choices,
+        'priority_choices': Complaints.Priority.choices,
+    })
+
+
+@admin_required
+def complaint_detail(request, complaint_pk):
+    """Full complaint details, with the assign-officer / status panel."""
+    complaint = get_object_or_404(
+        Complaints.objects.select_related('category', 'assigned_officer', 'user'),
+        pk=complaint_pk,
+    )
+    # Officers from the complaint's own department are listed first as "recommended"
+    officers = Officer.objects.select_related('category').order_by('Fullname')
+    recommended_officers = [o for o in officers if o.category_id == complaint.category_id]
+    other_officers = [o for o in officers if o.category_id != complaint.category_id]
+
+    # Bounding box (~1 km around the pin) for the embedded OpenStreetMap
+    map_bbox = None
+    if complaint.latitude is not None and complaint.longitude is not None:
+        lat, lng, d = float(complaint.latitude), float(complaint.longitude), 0.01
+        map_bbox = f"{lng - d:.6f},{lat - d:.6f},{lng + d:.6f},{lat + d:.6f}"
+
+    return render(request, 'adminapp/complaint_detail.html', {
+        'complaint': complaint,
+        'map_bbox': map_bbox,
+        'recommended_officers': recommended_officers,
+        'other_officers': other_officers,
+        'status_choices': Complaints.Status.choices,
+    })
+
+
+@admin_required
+def assign_complaint_officer(request, complaint_pk):
+    """POST: assign / unassign an officer and update the status and remarks."""
+    complaint = get_object_or_404(Complaints, pk=complaint_pk)
+    if request.method != 'POST':
+        return redirect('complaint_detail', complaint_pk=complaint.pk)
+
+    officer_id = request.POST.get('officer', '').strip()
+    new_status = request.POST.get('status_code', '').strip()
+    remarks = request.POST.get('remarks', '').strip()
+
+    # Officer ('' = unassign)
+    if officer_id:
+        officer = Officer.objects.filter(pk=officer_id).first() if officer_id.isdigit() else None
+        if not officer:
+            messages.error(request, "Selected officer was not found.")
+            return redirect('complaint_detail', complaint_pk=complaint.pk)
+        complaint.assigned_officer = officer
+    else:
+        complaint.assigned_officer = None
+
+    # Status (ignore anything that isn't a valid choice)
+    if new_status in Complaints.Status.values:
+        complaint.status_code = new_status
+
+    complaint.remarks = remarks or None
+    complaint.save(update_fields=['assigned_officer', 'status_code', 'remarks'])
+
+    if complaint.assigned_officer:
+        messages.success(
+            request,
+            f"Complaint {complaint.complaint_id} assigned to {complaint.assigned_officer.Fullname} "
+            f"({complaint.status_code}).",
+        )
+    else:
+        messages.success(request, f"Complaint {complaint.complaint_id} updated ({complaint.status_code}, unassigned).")
+    return redirect('complaint_detail', complaint_pk=complaint.pk)

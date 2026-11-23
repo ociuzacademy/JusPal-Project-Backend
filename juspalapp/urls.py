@@ -10,7 +10,7 @@ schema_view = get_schema_view(
     openapi.Info(
         title="JusPal User API",
         default_version='v1',
-        description="API documentation for the JusPal user app (registration, login, profile).",
+        description="API documentation for the JusPal user app (registration, login, profile, complaints).",
     ),
     public=True,
     permission_classes=(permissions.AllowAny,),
@@ -29,6 +29,13 @@ urlpatterns = [
     #   officer apis
     #-----------------------------------------------------------------------------------------------------------
     path('officer/login/', OfficerLoginView.as_view(), name='officer-login'),
+
+    #---------------------------------------------------------------------------------------------------------
+    #   complaint apis
+    #-----------------------------------------------------------------------------------------------------------
+    path('complaints/create/', ComplaintCreateView.as_view(), name='complaint_create'),
+    path('complaints/user/<int:user_id>/', UserComplaintListView.as_view(), name='user_complaints'),
+    path('complaints/<str:complaint_id>/', ComplaintDetailView.as_view(), name='complaint_detail'),
 
 
 

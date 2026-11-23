@@ -1,0 +1,10 @@
+{# Usage: {% include 'adminapp/partials/complaint_status_badge.html' with status=complaint.status_code %} #}
+{% if status == 'Pending' %}
+<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-mono font-medium bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30"><span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>Pending</span>
+{% elif status == 'In Progress' %}
+<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-mono font-medium bg-sky-500/15 text-sky-700 dark:text-sky-300 border border-sky-500/30"><span class="w-1.5 h-1.5 rounded-full bg-sky-500 animate-pulse"></span>In Progress</span>
+{% elif status == 'Resolved' %}
+<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-mono font-medium bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30"><span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>Resolved</span>
+{% else %}
+<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-mono font-medium bg-slate-500/15 text-slate-700 dark:text-slate-300 border border-slate-500/30"><span class="w-1.5 h-1.5 rounded-full bg-slate-500"></span>{{ status }}</span>
+{% endif %}

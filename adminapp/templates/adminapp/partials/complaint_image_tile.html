@@ -1,0 +1,18 @@
+{# Usage: {% include 'adminapp/partials/complaint_image_tile.html' with image=complaint.photo label="Photo" icon="photo_camera" %} #}
+<div class="rounded-xl border border-slate-200 dark:border-white/10 overflow-hidden bg-slate-50/50 dark:bg-white/[0.02]">
+  {% if image %}
+  <button type="button" class="block w-full group relative" data-src="{{ image.url }}" data-title="{{ label }}"
+    onclick="openMediaModal(this)" title="View {{ label }}">
+    <img src="{{ image.url }}" alt="{{ label }}" class="w-full h-36 object-cover" />
+    <span class="material-symbols-outlined absolute inset-0 flex items-center justify-center text-white bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity text-[28px]">zoom_in</span>
+  </button>
+  {% else %}
+  <div class="w-full h-36 flex flex-col items-center justify-center text-slate-400 dark:text-slate-500 gap-1">
+    <span class="material-symbols-outlined text-[28px]">hide_image</span>
+    <span class="text-[11px] font-mono">Not provided</span>
+  </div>
+  {% endif %}
+  <div class="px-3 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 flex items-center gap-1.5 border-t border-slate-200 dark:border-white/10">
+    <span class="material-symbols-outlined text-[15px] text-violet-500">{{ icon }}</span>{{ label }}
+  </div>
+</div>

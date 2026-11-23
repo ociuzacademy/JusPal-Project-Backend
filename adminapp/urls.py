@@ -22,4 +22,9 @@ urlpatterns = [
     # ── User Management (Admin) ────────────────────────────────────────────────
     path('list_users/', views.list_users, name='list_users'),
     path('delete_user/<int:user_id>/', views.delete_user, name='delete_user'),
+
+    # ── Complaint Management (Admin) ───────────────────────────────────────────
+    path('complaints/', views.complaint_list, name='complaint_list'),
+    path('complaints/<int:complaint_pk>/', views.complaint_detail, name='complaint_detail'),
+    path('complaints/<int:complaint_pk>/assign/', views.assign_complaint_officer, name='assign_complaint_officer'),
 ]
