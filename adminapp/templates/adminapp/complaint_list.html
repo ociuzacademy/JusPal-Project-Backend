@@ -1,0 +1,225 @@
+{% extends 'adminapp/admin_index.html' %}
+
+{% block title %}Complaints - JusPal Admin{% endblock %}
+
+{% block content %}
+<main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 py-8 relative z-10 flex flex-col gap-6">
+
+  <!-- Breadcrumbs -->
+  <div class="flex items-center gap-2 text-xs font-mono text-slate-500 dark:text-slate-400">
+    <a href="{% url 'admin_index' %}"
+      class="hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors flex items-center gap-1">
+      <span class="material-symbols-outlined text-[15px]">home</span>
+      <span>Dashboard</span>
+    </a>
+    <span>/</span>
+    <span class="text-slate-800 dark:text-slate-200 font-semibold">Complaints</span>
+  </div>
+
+  <!-- Stats Row -->
+  <div class="grid grid-cols-2 lg:grid-cols-5 gap-4">
+    <a href="{% url 'complaint_list' %}" class="glass-tile rounded-2xl p-4 block">
+      <div class="flex items-center justify-between">
+        <span class="text-[11px] font-mono uppercase tracking-wider text-emerald-700 dark:text-emerald-300">Total</span>
+        <span class="material-symbols-outlined text-[18px] text-emerald-600 dark:text-emerald-400">inventory_2</span>
+      </div>
+      <div class="text-2xl font-bold text-slate-900 dark:text-white mt-2">{{ stats.total }}</div>
+    </a>
+    <a href="?status=Pending" class="glass-tile rounded-2xl p-4 block">
+      <div class="flex items-center justify-between">
+        <span class="text-[11px] font-mono uppercase tracking-wider text-amber-700 dark:text-amber-300">Pending</span>
+        <span class="material-symbols-outlined text-[18px] text-amber-600 dark:text-amber-400">hourglass_top</span>
+      </div>
+      <div class="text-2xl font-bold text-slate-900 dark:text-white mt-2">{{ stats.pending }}</div>
+    </a>
+    <a href="?status=In+Progress" class="glass-tile rounded-2xl p-4 block">
+      <div class="flex items-center justify-between">
+        <span class="text-[11px] font-mono uppercase tracking-wider text-sky-700 dark:text-sky-300">In Progress</span>
+        <span class="material-symbols-outlined text-[18px] text-sky-600 dark:text-sky-400">autorenew</span>
+      </div>
+      <div class="text-2xl font-bold text-slate-900 dark:text-white mt-2">{{ stats.in_progress }}</div>
+    </a>
+    <a href="?status=Resolved" class="glass-tile rounded-2xl p-4 block">
+      <div class="flex items-center justify-between">
+        <span class="text-[11px] font-mono uppercase tracking-wider text-teal-700 dark:text-teal-300">Resolved</span>
+        <span class="material-symbols-outlined text-[18px] text-teal-600 dark:text-teal-400">task_alt</span>
+      </div>
+      <div class="text-2xl font-bold text-slate-900 dark:text-white mt-2">{{ stats.resolved }}</div>
+    </a>
+    <a href="?assigned=no" class="glass-tile rounded-2xl p-4 block col-span-2 lg:col-span-1">
+      <div class="flex items-center justify-between">
+        <span class="text-[11px] font-mono uppercase tracking-wider text-red-700 dark:text-red-300">Unassigned</span>
+        <span class="material-symbols-outlined text-[18px] text-red-600 dark:text-red-400">person_off</span>
+      </div>
+      <div class="text-2xl font-bold text-slate-900 dark:text-white mt-2">{{ stats.unassigned }}</div>
+    </a>
+  </div>
+
+  <!-- Main Card -->
+  <div class="glass-card rounded-2xl p-6 sm:p-8 shadow-2xl">
+
+    <!-- Header -->
+    <div class="pb-6 border-b border-slate-200 dark:border-white/10 mb-6 flex flex-col gap-5">
+      <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-3">
+        <div>
+          <h1 class="text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-2.5">
+            <span
+              class="w-9 h-9 rounded-xl bg-gradient-to-tr from-emerald-600 via-teal-600 to-amber-500 flex items-center justify-center text-white shadow-md">
+              <span class="material-symbols-outlined text-[20px]">report</span>
+            </span>
+            Complaints
+          </h1>
+          <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">
+            Social and personal complaints filed by citizens. Open one to see full details and assign an officer.
+          </p>
+        </div>
+        <span class="text-xs font-mono text-slate-500 dark:text-slate-400">
+          Showing {{ complaints|length }} complaint{{ complaints|length|pluralize }}{% if is_filtered %} (filtered){% endif %}
+        </span>
+      </div>
+
+      <!-- Filters (GET form) -->
+      <form method="GET" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3">
+        <div class="relative lg:col-span-2">
+          <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[18px]">search</span>
+          <input type="text" name="q" value="{{ q }}" placeholder="ID, name, phone, city, text..."
+            class="glass-input pl-9 pr-3 py-2 text-xs rounded-xl w-full" />
+        </div>
+        <select name="type" class="glass-input px-3 py-2 text-xs rounded-xl w-full cursor-pointer" onchange="this.form.submit()">
+          <option value="">All Types</option>
+          {% for value, label in type_choices %}
+          <option value="{{ value }}" {% if filters.type == value %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+        <select name="status" class="glass-input px-3 py-2 text-xs rounded-xl w-full cursor-pointer" onchange="this.form.submit()">
+          <option value="">All Statuses</option>
+          {% for value, label in status_choices %}
+          <option value="{{ value }}" {% if filters.status == value %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+        <select name="priority" class="glass-input px-3 py-2 text-xs rounded-xl w-full cursor-pointer" onchange="this.form.submit()">
+          <option value="">All Priorities</option>
+          {% for value, label in priority_choices %}
+          <option value="{{ value }}" {% if filters.priority == value %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+        <select name="category" class="glass-input px-3 py-2 text-xs rounded-xl w-full cursor-pointer" onchange="this.form.submit()">
+          <option value="">All Departments</option>
+          {% for cat in categories %}
+          <option value="{{ cat.id }}" {% if filters.category == cat.id|stringformat:"s" %}selected{% endif %}>{{ cat.name }}</option>
+          {% endfor %}
+        </select>
+        {% if filters.assigned %}<input type="hidden" name="assigned" value="{{ filters.assigned }}" />{% endif %}
+
+        <div class="sm:col-span-2 lg:col-span-6 flex items-center gap-2">
+          <button type="submit"
+            class="px-4 py-2 glow-button text-white text-xs font-semibold rounded-xl flex items-center gap-1.5">
+            <span class="material-symbols-outlined text-[16px]">filter_alt</span>
+            <span>Apply</span>
+          </button>
+          {% if is_filtered %}
+          <a href="{% url 'complaint_list' %}"
+            class="px-4 py-2 rounded-xl border border-slate-300 dark:border-white/15 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-white/5 text-xs font-semibold transition-colors flex items-center gap-1.5">
+            <span class="material-symbols-outlined text-[16px]">close</span>
+            <span>Clear filters</span>
+          </a>
+          {% if filters.assigned == 'no' %}
+          <span class="text-[11px] font-mono px-2 py-1 rounded-md bg-red-500/10 text-red-600 dark:text-red-300 border border-red-500/20">Unassigned only</span>
+          {% elif filters.assigned == 'yes' %}
+          <span class="text-[11px] font-mono px-2 py-1 rounded-md bg-emerald-500/10 text-emerald-600 dark:text-emerald-300 border border-emerald-500/20">Assigned only</span>
+          {% endif %}
+          {% endif %}
+        </div>
+      </form>
+    </div>
+
+    {% if complaints %}
+    <!-- Complaint Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+      {% for c in complaints %}
+      <a href="{% url 'complaint_detail' c.pk %}"
+        class="glass-tile rounded-2xl p-5 flex flex-col gap-3 group hover:border-emerald-500/40 hover:-translate-y-0.5 transition-all">
+
+        <!-- Top row: ID + type -->
+        <div class="flex items-start justify-between gap-2">
+          <div>
+            <div class="font-mono text-sm font-bold text-slate-900 dark:text-white">{{ c.complaint_id }}</div>
+            <div class="text-[11px] font-mono text-slate-400 dark:text-slate-500 mt-0.5">{{ c.created_at|date:"d M Y, h:i A" }}</div>
+          </div>
+          {% if c.complaint_type == 'Social' %}
+          <span class="px-2 py-0.5 rounded-md text-[11px] font-semibold bg-violet-500/15 text-violet-700 dark:text-violet-300 border border-violet-500/25 flex items-center gap-1">
+            <span class="material-symbols-outlined text-[13px]">groups</span>Social
+          </span>
+          {% else %}
+          <span class="px-2 py-0.5 rounded-md text-[11px] font-semibold bg-cyan-500/15 text-cyan-700 dark:text-cyan-300 border border-cyan-500/25 flex items-center gap-1">
+            <span class="material-symbols-outlined text-[13px]">person</span>Personal
+          </span>
+          {% endif %}
+        </div>
+
+        <!-- Status + priority -->
+        <div class="flex flex-wrap items-center gap-1.5">
+          {% include 'adminapp/partials/complaint_status_badge.html' with status=c.status_code %}
+          {% if c.priority %}
+          {% include 'adminapp/partials/complaint_priority_badge.html' with priority=c.priority %}
+          {% endif %}
+        </div>
+
+        <!-- Description -->
+        <p class="text-xs text-slate-600 dark:text-slate-300 leading-relaxed line-clamp-3 min-h-[3.6em]">
+          {{ c.description|truncatechars:160 }}
+        </p>
+
+        <!-- Meta -->
+        <div class="mt-auto pt-3 border-t border-slate-200 dark:border-white/10 space-y-1.5 text-[11px]">
+          <div class="flex items-center gap-1.5 text-slate-600 dark:text-slate-300">
+            <span class="material-symbols-outlined text-[14px] text-slate-400">person</span>
+            <span class="truncate">{{ c.name }}</span>
+            <span class="text-slate-400">·</span>
+            <span class="material-symbols-outlined text-[14px] text-slate-400">location_on</span>
+            <span class="truncate">{{ c.city }}</span>
+          </div>
+          <div class="flex items-center gap-1.5 text-slate-600 dark:text-slate-300">
+            <span class="material-symbols-outlined text-[14px] text-teal-500">domain</span>
+            <span class="truncate">{{ c.category.name }}</span>
+          </div>
+          <div class="flex items-center justify-between gap-2">
+            {% if c.assigned_officer %}
+            <span class="flex items-center gap-1.5 text-emerald-700 dark:text-emerald-300 font-medium truncate">
+              <span class="material-symbols-outlined text-[14px]">badge</span>
+              {{ c.assigned_officer.Fullname }}
+            </span>
+            {% else %}
+            <span class="flex items-center gap-1.5 text-red-600 dark:text-red-300 font-medium">
+              <span class="material-symbols-outlined text-[14px]">person_off</span>
+              Not assigned
+            </span>
+            {% endif %}
+            <span class="text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-0.5 group-hover:translate-x-1 transition-transform whitespace-nowrap">
+              View <span class="material-symbols-outlined text-[14px]">arrow_forward</span>
+            </span>
+          </div>
+        </div>
+      </a>
+      {% endfor %}
+    </div>
+    {% else %}
+    <!-- Empty State -->
+    <div class="text-center py-16 px-6 rounded-2xl border border-dashed border-slate-300 dark:border-white/10 bg-slate-50/50 dark:bg-white/[0.02]">
+      <div class="w-16 h-16 rounded-2xl bg-gradient-to-tr from-emerald-500/20 to-teal-500/20 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 mx-auto flex items-center justify-center mb-4">
+        <span class="material-symbols-outlined text-[32px]">{% if is_filtered %}search_off{% else %}inbox{% endif %}</span>
+      </div>
+      {% if is_filtered %}
+      <h3 class="text-lg font-bold text-slate-900 dark:text-white">No complaints match these filters</h3>
+      <p class="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1.5">Try a different search or clear the filters.</p>
+      <a href="{% url 'complaint_list' %}" class="inline-flex mt-4 px-4 py-2 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-700 dark:text-emerald-300 text-xs font-semibold hover:bg-emerald-500/25">Clear filters</a>
+      {% else %}
+      <h3 class="text-lg font-bold text-slate-900 dark:text-white">No complaints yet</h3>
+      <p class="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1.5">Complaints filed through the JusPal app will appear here.</p>
+      {% endif %}
+    </div>
+    {% endif %}
+
+  </div>
+</main>
+{% endblock %}

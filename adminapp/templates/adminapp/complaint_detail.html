@@ -1,0 +1,309 @@
+{% extends 'adminapp/admin_index.html' %}
+
+{% block title %}{{ complaint.complaint_id }} - JusPal Admin{% endblock %}
+
+{% block content %}
+<main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 py-8 relative z-10 flex flex-col gap-6">
+
+  <!-- Breadcrumbs -->
+  <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+    <div class="flex items-center gap-2 text-xs font-mono text-slate-500 dark:text-slate-400">
+      <a href="{% url 'admin_index' %}" class="hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors flex items-center gap-1">
+        <span class="material-symbols-outlined text-[15px]">home</span>
+        <span>Dashboard</span>
+      </a>
+      <span>/</span>
+      <a href="{% url 'complaint_list' %}" class="hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors">Complaints</a>
+      <span>/</span>
+      <span class="text-slate-800 dark:text-slate-200 font-semibold">{{ complaint.complaint_id }}</span>
+    </div>
+    <a href="{% url 'complaint_list' %}"
+      class="self-start sm:self-auto px-3 py-1.5 rounded-xl border border-slate-300 dark:border-white/15 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-white/5 text-xs font-semibold transition-colors flex items-center gap-1.5">
+      <span class="material-symbols-outlined text-[16px]">arrow_back</span>
+      <span>Back to complaints</span>
+    </a>
+  </div>
+
+  <!-- Header Card -->
+  <div class="glass-card rounded-2xl p-6 sm:p-7 shadow-2xl flex flex-col md:flex-row md:items-center justify-between gap-5">
+    <div class="flex items-start gap-4">
+      <div class="w-12 h-12 rounded-xl bg-gradient-to-tr from-emerald-600 via-teal-600 to-amber-500 flex items-center justify-center text-white shadow-md flex-shrink-0">
+        <span class="material-symbols-outlined text-[24px]">{% if complaint.complaint_type == 'Social' %}groups{% else %}person{% endif %}</span>
+      </div>
+      <div>
+        <h1 class="text-2xl font-bold font-mono text-slate-900 dark:text-white tracking-tight">{{ complaint.complaint_id }}</h1>
+        <p class="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
+          {{ complaint.complaint_type }} complaint · {{ complaint.category.name }} · Filed {{ complaint.created_at|date:"d M Y, h:i A" }}
+        </p>
+      </div>
+    </div>
+    <div class="flex flex-wrap items-center gap-2">
+      {% include 'adminapp/partials/complaint_status_badge.html' with status=complaint.status_code %}
+      {% if complaint.priority %}
+      {% include 'adminapp/partials/complaint_priority_badge.html' with priority=complaint.priority %}
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+
+    <!-- ═════════════ LEFT: full complaint details ═════════════ -->
+    <div class="lg:col-span-2 flex flex-col gap-6">
+
+      <!-- Description -->
+      <section class="glass-card rounded-2xl p-6 shadow-xl">
+        <h2 class="text-sm font-bold uppercase tracking-wider text-slate-700 dark:text-slate-200 flex items-center gap-2 mb-3">
+          <span class="material-symbols-outlined text-[18px] text-emerald-600 dark:text-emerald-400">description</span>
+          Complaint Description
+        </h2>
+        <p class="text-sm text-slate-700 dark:text-slate-200 leading-relaxed whitespace-pre-line">{{ complaint.description }}</p>
+        <div class="mt-4 pt-4 border-t border-slate-200 dark:border-white/10 grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
+          <div>
+            <div class="text-[11px] font-mono uppercase text-slate-400">Date of Incident</div>
+            <div class="font-semibold text-slate-800 dark:text-slate-100 mt-0.5">{{ complaint.date_of_incident|date:"d M Y" }}</div>
+          </div>
+          <div>
+            <div class="text-[11px] font-mono uppercase text-slate-400">Department</div>
+            <div class="font-semibold text-slate-800 dark:text-slate-100 mt-0.5">{{ complaint.category.name }}</div>
+          </div>
+          <div>
+            <div class="text-[11px] font-mono uppercase text-slate-400">Complaint Type</div>
+            <div class="font-semibold text-slate-800 dark:text-slate-100 mt-0.5">{{ complaint.complaint_type }}</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Complainant -->
+      <section class="glass-card rounded-2xl p-6 shadow-xl">
+        <h2 class="text-sm font-bold uppercase tracking-wider text-slate-700 dark:text-slate-200 flex items-center gap-2 mb-4">
+          <span class="material-symbols-outlined text-[18px] text-emerald-600 dark:text-emerald-400">contact_page</span>
+          Complainant Details
+        </h2>
+        <dl class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4 text-xs">
+          <div>
+            <dt class="text-[11px] font-mono uppercase text-slate-400">Name</dt>
+            <dd class="font-semibold text-slate-800 dark:text-slate-100 mt-0.5">{{ complaint.name }}</dd>
+          </div>
+          <div>
+            <dt class="text-[11px] font-mono uppercase text-slate-400">Registered App User</dt>
+            <dd class="font-semibold text-slate-800 dark:text-slate-100 mt-0.5">{{ complaint.user.fullname }} <span class="font-mono text-slate-400">(USR-{{ complaint.user_id|stringformat:"04d" }})</span></dd>
+          </div>
+          <div>
+            <dt class="text-[11px] font-mono uppercase text-slate-400">Email</dt>
+            <dd class="mt-0.5"><a href="mailto:{{ complaint.email }}" class="font-semibold text-emerald-700 dark:text-emerald-300 hover:underline break-all">{{ complaint.email }}</a></dd>
+          </div>
+          <div>
+            <dt class="text-[11px] font-mono uppercase text-slate-400">Phone</dt>
+            <dd class="mt-0.5"><a href="tel:{{ complaint.phone }}" class="font-semibold font-mono text-emerald-700 dark:text-emerald-300 hover:underline">{{ complaint.phone }}</a></dd>
+          </div>
+          <div class="sm:col-span-2">
+            <dt class="text-[11px] font-mono uppercase text-slate-400">Address</dt>
+            <dd class="font-semibold text-slate-800 dark:text-slate-100 mt-0.5 whitespace-pre-line">{{ complaint.address }}</dd>
+          </div>
+          <div>
+            <dt class="text-[11px] font-mono uppercase text-slate-400">City</dt>
+            <dd class="font-semibold text-slate-800 dark:text-slate-100 mt-0.5">{{ complaint.city }}</dd>
+          </div>
+        </dl>
+      </section>
+
+      {% if complaint.complaint_type == 'Social' %}
+      <!-- Social: location -->
+      <section class="glass-card rounded-2xl p-6 shadow-xl">
+        <h2 class="text-sm font-bold uppercase tracking-wider text-slate-700 dark:text-slate-200 flex items-center gap-2 mb-4">
+          <span class="material-symbols-outlined text-[18px] text-violet-600 dark:text-violet-400">location_on</span>
+          Incident Location
+        </h2>
+        {% if map_bbox %}
+        <div class="flex flex-wrap items-center gap-3 text-xs mb-4">
+          <span class="font-mono px-2.5 py-1 rounded-lg bg-slate-200/60 dark:bg-white/5 border border-slate-300/60 dark:border-white/10 text-slate-700 dark:text-slate-200">
+            {{ complaint.latitude }}, {{ complaint.longitude }}
+          </span>
+          <a href="https://www.google.com/maps?q={{ complaint.latitude }},{{ complaint.longitude }}" target="_blank" rel="noopener"
+            class="px-3 py-1.5 rounded-lg bg-violet-500/15 border border-violet-500/30 text-violet-700 dark:text-violet-300 font-semibold hover:bg-violet-500/25 flex items-center gap-1">
+            <span class="material-symbols-outlined text-[15px]">map</span>Open in Google Maps
+          </a>
+        </div>
+        <iframe class="w-full h-64 rounded-xl border border-slate-200 dark:border-white/10" loading="lazy"
+          src="https://www.openstreetmap.org/export/embed.html?layer=mapnik&marker={{ complaint.latitude }},{{ complaint.longitude }}&bbox={{ map_bbox }}"
+          title="Incident location map"></iframe>
+        {% else %}
+        <p class="text-xs text-slate-500 dark:text-slate-400">No location was provided with this complaint.</p>
+        {% endif %}
+      </section>
+
+      <!-- Social: evidence images -->
+      <section class="glass-card rounded-2xl p-6 shadow-xl">
+        <h2 class="text-sm font-bold uppercase tracking-wider text-slate-700 dark:text-slate-200 flex items-center gap-2 mb-4">
+          <span class="material-symbols-outlined text-[18px] text-violet-600 dark:text-violet-400">photo_library</span>
+          Attachments
+        </h2>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          {% include 'adminapp/partials/complaint_image_tile.html' with image=complaint.photo label="Complaint Photo" icon="photo_camera" %}
+          {% include 'adminapp/partials/complaint_image_tile.html' with image=complaint.aadhaar_photo label="Aadhaar Photo" icon="badge" %}
+          {% include 'adminapp/partials/complaint_image_tile.html' with image=complaint.proof_of_work label="Proof of Work" icon="construction" %}
+        </div>
+      </section>
+      {% else %}
+      <!-- Personal: specific details -->
+      <section class="glass-card rounded-2xl p-6 shadow-xl">
+        <h2 class="text-sm font-bold uppercase tracking-wider text-slate-700 dark:text-slate-200 flex items-center gap-2 mb-4">
+          <span class="material-symbols-outlined text-[18px] text-cyan-600 dark:text-cyan-400">gavel</span>
+          Personal Complaint Details
+        </h2>
+        <dl class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4 text-xs">
+          <div>
+            <dt class="text-[11px] font-mono uppercase text-slate-400">Complaint Date</dt>
+            <dd class="font-semibold text-slate-800 dark:text-slate-100 mt-0.5">{{ complaint.complaint_date|date:"d M Y"|default:"—" }}</dd>
+          </div>
+          <div>
+            <dt class="text-[11px] font-mono uppercase text-slate-400">Complaint Regarding</dt>
+            <dd class="font-semibold text-slate-800 dark:text-slate-100 mt-0.5">{{ complaint.complaint_regarding|default:"—" }}</dd>
+          </div>
+          <div>
+            <dt class="text-[11px] font-mono uppercase text-slate-400">Nature of Complaint</dt>
+            <dd class="font-semibold text-slate-800 dark:text-slate-100 mt-0.5">{{ complaint.nature_of_complaint|default:"—" }}</dd>
+          </div>
+          <div>
+            <dt class="text-[11px] font-mono uppercase text-slate-400">Against (Person / Company)</dt>
+            <dd class="font-semibold text-slate-800 dark:text-slate-100 mt-0.5">{{ complaint.person_company_against|default:"—" }}</dd>
+          </div>
+          <div>
+            <dt class="text-[11px] font-mono uppercase text-slate-400">Complaint Field</dt>
+            <dd class="font-semibold text-slate-800 dark:text-slate-100 mt-0.5">{{ complaint.complaint_field|default:"—" }}</dd>
+          </div>
+          <div class="sm:col-span-2">
+            <dt class="text-[11px] font-mono uppercase text-slate-400">Specific Complaint</dt>
+            <dd class="font-semibold text-slate-800 dark:text-slate-100 mt-0.5 whitespace-pre-line">{{ complaint.specific_complaint|default:"—" }}</dd>
+          </div>
+        </dl>
+      </section>
+      {% endif %}
+    </div>
+
+    <!-- ═════════════ RIGHT: assign officer panel ═════════════ -->
+    <aside class="flex flex-col gap-6 lg:sticky lg:top-24">
+
+      <!-- Current assignment -->
+      <section class="glass-card rounded-2xl p-6 shadow-xl">
+        <h2 class="text-sm font-bold uppercase tracking-wider text-slate-700 dark:text-slate-200 flex items-center gap-2 mb-4">
+          <span class="material-symbols-outlined text-[18px] text-emerald-600 dark:text-emerald-400">assignment_ind</span>
+          Assigned Officer
+        </h2>
+        {% if complaint.assigned_officer %}
+        {% with o=complaint.assigned_officer %}
+        <div class="flex items-center gap-3 p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/25">
+          {% if o.profile %}
+          <img src="{{ o.profile.url }}" alt="{{ o.Fullname }}" class="w-11 h-11 rounded-full object-cover border-2 border-emerald-500/40" />
+          {% else %}
+          <div class="w-11 h-11 rounded-full bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-emerald-700 dark:text-emerald-300 font-bold">{{ o.Fullname|slice:":1"|upper }}</div>
+          {% endif %}
+          <div class="min-w-0 text-xs">
+            <div class="font-bold text-slate-900 dark:text-white truncate">{{ o.Fullname }}</div>
+            <div class="font-mono text-slate-500 dark:text-slate-400">{{ o.officer_id }} · {{ o.category.name }}</div>
+            <div class="text-slate-500 dark:text-slate-400 truncate">{{ o.Phone }} · {{ o.Email }}</div>
+          </div>
+        </div>
+        {% endwith %}
+        {% else %}
+        <div class="flex items-center gap-3 p-3.5 rounded-xl bg-red-500/10 border border-red-500/25 text-xs text-red-700 dark:text-red-300">
+          <span class="material-symbols-outlined text-[22px]">person_off</span>
+          <span class="font-semibold">No officer assigned yet.</span>
+        </div>
+        {% endif %}
+      </section>
+
+      <!-- Assign / update form -->
+      <section class="glass-card rounded-2xl p-6 shadow-xl">
+        <h2 class="text-sm font-bold uppercase tracking-wider text-slate-700 dark:text-slate-200 flex items-center gap-2 mb-4">
+          <span class="material-symbols-outlined text-[18px] text-amber-600 dark:text-amber-400">edit_note</span>
+          {% if complaint.assigned_officer %}Reassign / Update{% else %}Assign Officer{% endif %}
+        </h2>
+
+        <form method="POST" action="{% url 'assign_complaint_officer' complaint.pk %}" class="space-y-4">
+          {% csrf_token %}
+
+          <div class="space-y-1.5">
+            <label for="officer" class="block text-xs font-semibold text-slate-700 dark:text-slate-200 uppercase tracking-wider">Officer</label>
+            <select id="officer" name="officer" class="glass-input block w-full h-11 px-3 text-sm rounded-xl cursor-pointer">
+              <option value="">— Not assigned —</option>
+              {% if recommended_officers %}
+              <optgroup label="Recommended: {{ complaint.category.name }}">
+                {% for o in recommended_officers %}
+                <option value="{{ o.id }}" {% if complaint.assigned_officer_id == o.id %}selected{% endif %}>{{ o.Fullname }} ({{ o.officer_id }})</option>
+                {% endfor %}
+              </optgroup>
+              {% endif %}
+              {% if other_officers %}
+              <optgroup label="Other departments">
+                {% for o in other_officers %}
+                <option value="{{ o.id }}" {% if complaint.assigned_officer_id == o.id %}selected{% endif %}>{{ o.Fullname }} ({{ o.officer_id }}) · {{ o.category.name }}</option>
+                {% endfor %}
+              </optgroup>
+              {% endif %}
+            </select>
+            {% if not recommended_officers %}
+            <p class="text-[11px] text-amber-600 dark:text-amber-400 flex items-center gap-1">
+              <span class="material-symbols-outlined text-[14px]">info</span>
+              No officers in {{ complaint.category.name }} yet.
+              <a href="{% url 'add_officer' %}" class="underline font-semibold">Register one</a>
+            </p>
+            {% endif %}
+          </div>
+
+          <div class="space-y-1.5">
+            <label for="status_code" class="block text-xs font-semibold text-slate-700 dark:text-slate-200 uppercase tracking-wider">Status</label>
+            <select id="status_code" name="status_code" class="glass-input block w-full h-11 px-3 text-sm rounded-xl cursor-pointer">
+              {% for value, label in status_choices %}
+              <option value="{{ value }}" {% if complaint.status_code == value %}selected{% endif %}>{{ label }}</option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div class="space-y-1.5">
+            <label for="remarks" class="block text-xs font-semibold text-slate-700 dark:text-slate-200 uppercase tracking-wider">
+              Remarks <span class="text-slate-400 normal-case font-normal">(optional)</span>
+            </label>
+            <textarea id="remarks" name="remarks" rows="4" placeholder="Notes for the officer or the record..."
+              class="glass-input block w-full px-3 py-2.5 text-sm rounded-xl resize-y">{{ complaint.remarks|default:"" }}</textarea>
+          </div>
+
+          <button type="submit"
+            class="w-full h-11 glow-button text-white text-sm font-semibold rounded-xl flex items-center justify-center gap-2">
+            <span class="material-symbols-outlined text-[18px]">save</span>
+            <span>Save Assignment</span>
+          </button>
+        </form>
+      </section>
+    </aside>
+  </div>
+</main>
+
+<!-- Image Preview Modal -->
+<div id="media-modal" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4 bg-black/75 backdrop-blur-md">
+  <div class="glass-card max-w-3xl w-full rounded-2xl p-4 sm:p-6 shadow-2xl border border-white/20 flex flex-col items-center">
+    <div class="w-full flex items-center justify-between pb-3 border-b border-slate-200 dark:border-white/10 mb-4">
+      <h4 id="media-modal-title" class="text-sm font-bold text-slate-900 dark:text-white truncate pr-4">Attachment</h4>
+      <button type="button" onclick="closeMediaModal()" class="text-slate-400 hover:text-slate-600 dark:hover:text-white p-1 rounded-lg">
+        <span class="material-symbols-outlined text-[20px]">close</span>
+      </button>
+    </div>
+    <img id="media-modal-img" src="" alt="Attachment preview" class="max-h-[70vh] max-w-full rounded-lg object-contain shadow-lg" />
+  </div>
+</div>
+
+<script>
+  function openMediaModal(btn) {
+    document.getElementById('media-modal-img').src = btn.dataset.src;
+    document.getElementById('media-modal-title').textContent = btn.dataset.title;
+    document.getElementById('media-modal').classList.remove('hidden');
+  }
+  function closeMediaModal() {
+    document.getElementById('media-modal').classList.add('hidden');
+  }
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeMediaModal(); });
+  document.getElementById('media-modal').addEventListener('click', function (e) {
+    if (e.target === this) closeMediaModal();
+  });
+</script>
+{% endblock %}
