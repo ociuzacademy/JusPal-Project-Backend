@@ -6,6 +6,7 @@ urlpatterns = [
     path('', views.admin_login, name='admin_login'),
     path('admin_index/', views.admin_index, name='admin_index'),
     path('admin_logout/', views.admin_logout, name='admin_logout'),
+    path('admin_profile/', views.admin_profile, name='admin_profile'),
     
     # ── Category Management ────────────────────────────────────────────────────
     path('add_category/', views.add_category, name='add_category'),
