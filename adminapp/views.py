@@ -182,33 +182,18 @@ def list_officers(request):
 
 @admin_required
 def edit_officer(request, officer_id):
-    """Edit officer status and/or password directly from the list."""
+    """Change an officer's password from the officers list."""
     officer_instance = get_object_or_404(Officer, id=officer_id)
 
     if request.method == 'POST':
         new_password = request.POST.get('password', '').strip()
-        is_active = request.POST.get('is_active', '').strip()
-        changed = False
 
-        # Status: only act on a valid submitted value
-        if is_active in ('True', 'False'):
-            new_status = (is_active == 'True')
-            if new_status != officer_instance.is_active:
-                officer_instance.is_active = new_status
-                state = "activated" if new_status else "deactivated"
-                messages.success(request, f"Officer '{officer_instance.Fullname}' {state} successfully!")
-                changed = True
-
-        # Password: optional
         if new_password:
             officer_instance.Password = new_password
+            officer_instance.save(update_fields=['Password'])
             messages.success(request, f"Password for {officer_instance.Fullname} updated successfully!")
-            changed = True
-
-        if changed:
-            officer_instance.save()
         else:
-            messages.info(request, "No changes were made.")
+            messages.error(request, "Password cannot be empty.")
 
     return redirect('list_officers')
 
@@ -370,3 +355,61 @@ def assign_complaint_officer(request, complaint_pk):
     else:
         messages.success(request, f"Complaint {complaint.complaint_id} updated ({complaint.status_code}, unassigned).")
     return redirect('complaint_detail', complaint_pk=complaint.pk)
+
+
+# ==============================================================================
+# Admin Profile
+# ==============================================================================
+
+@admin_required
+def admin_profile(request):
+    """
+    View and update the logged-in admin's own profile.
+    Two forms post here, told apart by the hidden 'action' field:
+      action=profile  → update name and email
+      action=password → change password (current password required)
+    Role and account status are not editable here.
+    """
+    admin = tbl_admin.objects.filter(pk=request.session.get('admin_id'), is_active=True).first()
+    if not admin:
+        request.session.flush()
+        messages.error(request, "Your admin account was not found. Please log in again.")
+        return redirect('admin_login')
+
+    if request.method == 'POST':
+        action = request.POST.get('action')
+
+        if action == 'profile':
+            name = request.POST.get('name', '').strip()
+            email = request.POST.get('email', '').strip()
+            if not name or not email:
+                messages.error(request, "Name and email are required.")
+            elif tbl_admin.objects.filter(email__iexact=email).exclude(pk=admin.pk).exists():
+                messages.error(request, "This email is already used by another admin.")
+            else:
+                admin.name = name
+                admin.email = email
+                admin.save(update_fields=['name', 'email', 'updated_at'])
+                request.session['admin_name'] = admin.name  # keep the navbar in sync
+                messages.success(request, "Profile updated successfully!")
+                return redirect('admin_profile')
+
+        elif action == 'password':
+            current = request.POST.get('current_password', '')
+            new = request.POST.get('new_password', '').strip()
+            confirm = request.POST.get('confirm_password', '').strip()
+            if current != admin.password:
+                messages.error(request, "Current password is incorrect.")
+            elif len(new) < 6:
+                messages.error(request, "New password must be at least 6 characters.")
+            elif new != confirm:
+                messages.error(request, "New password and confirmation do not match.")
+            elif new == admin.password:
+                messages.error(request, "New password must be different from the current one.")
+            else:
+                admin.password = new
+                admin.save(update_fields=['password', 'updated_at'])
+                messages.success(request, "Password changed successfully!")
+                return redirect('admin_profile')
+
+    return render(request, 'adminapp/admin_profile.html', {'admin': admin})
