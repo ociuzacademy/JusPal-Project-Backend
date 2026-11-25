@@ -148,3 +148,5 @@ class Complaints(models.Model):
                 id_taken = Complaints.objects.filter(complaint_id=clashed_id).exists()
                 if not id_taken or attempt == self.MAX_ID_RETRIES - 1:
                     raise
+
+

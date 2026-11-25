@@ -40,7 +40,12 @@ urlpatterns = [
     path('complaints/user/<int:user_id>/', UserComplaintListView.as_view(), name='user_complaints'),
     path('complaints/<str:complaint_id>/', ComplaintDetailView.as_view(), name='complaint_detail'),
 
+    #---------------------------------------------------------------------------------------------------------
+    #   User Legal Aid Chatbot URL's
+    #-----------------------------------------------------------------------------------------------------------
+    path('chatbot/ask/', ChatbotAskView.as_view(), name='chatbot_ask'),
     
+
     #---------------------------------------------------------------------------------------------------------
     #   Officer URL's
     #-----------------------------------------------------------------------------------------------------------
