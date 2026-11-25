@@ -255,3 +255,13 @@ class OfficerComplaintUpdateSerializer(MediaPathModelSerializer):
             if 'remarks' in data:
                 data['remarks'] = remarks or None
         return data
+
+#-----------------------------------------------------------------------------------------------------------
+# Legal Aid Chatbot Serializers
+#-----------------------------------------------------------------------------------------------------------
+class ChatAskSerializer(serializers.Serializer):
+    message = serializers.CharField(
+        max_length=2000,
+        trim_whitespace=True,
+        help_text="The user's question or description of their problem"
+    )

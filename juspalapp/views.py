@@ -7,10 +7,12 @@ from rest_framework.response import Response
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
-from django.db.models import Case, When, Value, IntegerField, Count, Q
+from django.db import transaction
+from django.db.models import Case, When, Value, IntegerField, Count, Q, OuterRef, Subquery
 from .serializers import *
 from .models import *
 from adminapp.models import *
+from . import chatbot
 # Create your views here.
 
 
@@ -260,6 +262,82 @@ class ComplaintDetailView(APIView):
         serializer = self.serializer_class(complaint, context={'request': request})
         return Response({'message': 'Complaint fetched successfully', 'data': serializer.data},
                         status=status.HTTP_200_OK)
+
+
+#-----------------------------------------------------------------------------------------------------------
+# Legal Aid Chatbot API's (Google Gemini)
+#-----------------------------------------------------------------------------------------------------------
+
+ELIGIBILITY_LABELS = {
+    'likely_eligible': 'Likely eligible for free legal aid',
+    'possibly_eligible': 'Possibly eligible for free legal aid',
+    'not_eligible': 'Probably not eligible for free legal aid',
+    'need_more_info': 'Need more details to check eligibility',
+    'not_applicable': None,
+}
+
+
+#-----------------------------------------------------------------------------------------------------------
+# Chatbot Ask API
+#-----------------------------------------------------------------------------------------------------------
+class ChatbotAskView(APIView):
+    """POST /userapp/chatbot/ask/ — ask the legal aid assistant."""
+
+    serializer_class = ChatAskSerializer
+    parser_classes = [JSONParser, FormParser, MultiPartParser]
+
+    @swagger_auto_schema(
+        operation_summary="Ask the legal aid chatbot",
+        operation_description=(
+            "Send a question to the JusPal legal aid assistant. "
+            "The chatbot does not save messages or conversation history."
+        ),
+        request_body=ChatAskSerializer,
+        responses={
+            200: "Assistant reply",
+            400: "Validation errors",
+            503: "Chatbot unavailable"
+        },
+        tags=["Legal Aid Chatbot"],
+    )
+    def post(self, request):
+        serializer = self.serializer_class(data=request.data)
+
+        if not serializer.is_valid():
+            return Response(
+                {
+                    'message': 'Please check the input.',
+                    'errors': serializer.errors
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        question = serializer.validated_data['message']
+
+        try:
+            # No conversation history is passed
+            answer = chatbot.ask_legal_assistant([], question)
+
+        except chatbot.ChatbotUnavailable as exc:
+            return Response(
+                {'message': str(exc)},
+                status=status.HTTP_503_SERVICE_UNAVAILABLE
+            )
+
+        answer['eligibility_label'] = ELIGIBILITY_LABELS.get(
+            answer['eligibility']
+        )
+
+        return Response(
+            {
+                'message': 'Reply generated successfully',
+                'data': {
+                    **answer,
+                    'disclaimer': chatbot.DISCLAIMER
+                }
+            },
+            status=status.HTTP_200_OK
+        )
 
 
 #-----------------------------------------------------------------------------------------------------------
@@ -522,3 +600,4 @@ class OfficerComplaintUpdateView(APIView):
     @swagger_auto_schema(operation_summary="Update an assigned complaint (PUT)", **_schema)
     def put(self, request, officer_pk, complaint_id):
         return self._update(request, officer_pk, complaint_id)
+
