@@ -2,8 +2,8 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from functools import wraps
 from .models import tbl_admin, Category, Officer
-from django.db.models import Q, Count
-from juspalapp.models import userreg, Complaints
+from django.db.models import Q, Count, Avg
+from juspalapp.models import userreg, Complaints, Feedback
 
 
 # ==============================================================================
@@ -413,3 +413,62 @@ def admin_profile(request):
                 return redirect('admin_profile')
 
     return render(request, 'adminapp/admin_profile.html', {'admin': admin})
+
+
+# ==============================================================================
+# Feedback (submitted by app users — juspalapp.Feedback)
+# ==============================================================================
+
+FEEDBACK_SORTS = {
+    'newest': ('-created_at', '-id'),
+    'oldest': ('created_at', 'id'),
+    'highest': ('-rate', '-created_at'),
+    'lowest': ('rate', '-created_at'),
+}
+
+
+@admin_required
+def feedback_list(request):
+    """All user feedback with rating summary, search, star filter and sorting."""
+    all_feedback = Feedback.objects.all()
+
+    # ── Summary over all feedback (not affected by filters) ──────────────────
+    total = all_feedback.count()
+    average = all_feedback.aggregate(avg=Avg('rate'))['avg'] or 0
+    counts = dict(all_feedback.values_list('rate').annotate(n=Count('id')))
+    distribution = [
+        {'stars': s, 'count': counts.get(s, 0),
+         'percent': round(counts.get(s, 0) * 100 / total) if total else 0}
+        for s in range(5, 0, -1)
+    ]
+
+    # ── Filters ──────────────────────────────────────────────────────────────
+    q = request.GET.get('q', '').strip()
+    rating = request.GET.get('rating', '')
+    sort = request.GET.get('sort', 'newest')
+    if sort not in FEEDBACK_SORTS:
+        sort = 'newest'
+
+    feedbacks = all_feedback.select_related('user')
+    if q:
+        feedbacks = feedbacks.filter(
+            Q(feedback__icontains=q) | Q(user__fullname__icontains=q) | Q(user__email__icontains=q)
+        )
+    if rating in {'1', '2', '3', '4', '5'}:
+        feedbacks = feedbacks.filter(rate=int(rating))
+    feedbacks = feedbacks.order_by(*FEEDBACK_SORTS[sort])
+
+    return render(request, 'adminapp/feedback_list.html', {
+        'feedbacks': feedbacks,
+        'total': total,
+        'average': round(average, 1),
+        'average_stars': round(average),
+        'positive': sum(d['count'] for d in distribution if d['stars'] >= 4),
+        'negative': sum(d['count'] for d in distribution if d['stars'] <= 2),
+        'distribution': distribution,
+        'q': q,
+        'rating': rating,
+        'sort': sort,
+        'is_filtered': bool(q or rating),
+        'star_range': range(1, 6),
+    })

@@ -2,6 +2,7 @@ import logging
 
 from django.shortcuts import render
 from rest_framework.views import APIView
+from rest_framework import viewsets
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
@@ -339,6 +340,14 @@ class ChatbotAskView(APIView):
             status=status.HTTP_200_OK
         )
 
+#-----------------------------------------------------------------------------------------------------------
+# Feedback API
+#-----------------------------------------------------------------------------------------------------------
+
+class FeedbackViewSet(viewsets.ModelViewSet):
+    """ViewSet for managing feedback"""
+    queryset = Feedback.objects.all()
+    serializer_class = FeedbackSerializer
 
 #-----------------------------------------------------------------------------------------------------------
 # Officer API's

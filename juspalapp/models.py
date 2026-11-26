@@ -149,4 +149,11 @@ class Complaints(models.Model):
                 if not id_taken or attempt == self.MAX_ID_RETRIES - 1:
                     raise
 
+class Feedback(models.Model):
+    user = models.ForeignKey('userreg', on_delete=models.CASCADE)  # Linking feedback to a user
+    rate = models.PositiveIntegerField()  # Rating (out of 5)
+    feedback = models.TextField()  # User's feedback text
+    created_at = models.DateTimeField(auto_now_add=True)  # Timestamp for feedback submission
 
+    def __str__(self):
+        return f"Feedback from {self.user.fullname} - {self.rate}/5"
