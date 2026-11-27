@@ -344,6 +344,12 @@
             <span class="material-symbols-outlined text-[18px]">group</span>
             <span>Users</span>
           </a>
+
+          <!-- Feedback -->
+          <a href="{% url 'feedback_list' %}" class="nav-link {% if request.resolver_match.url_name == 'feedback_list' %}active{% endif %}">
+            <span class="material-symbols-outlined text-[18px]">reviews</span>
+            <span>Feedback</span>
+          </a>
         </nav>
       </div>
 

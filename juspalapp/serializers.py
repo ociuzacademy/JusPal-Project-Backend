@@ -265,3 +265,11 @@ class ChatAskSerializer(serializers.Serializer):
         trim_whitespace=True,
         help_text="The user's question or description of their problem"
     )
+
+#-----------------------------------------------------------------------------------------------------------
+# Feedback Serializers
+#-----------------------------------------------------------------------------------------------------------
+class FeedbackSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Feedback
+        fields = ['id', 'user', 'rate', 'feedback','created_at']
